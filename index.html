@@ -8,25 +8,34 @@
 body{
   margin:0;
   font-family:Arial,sans-serif;
-  background:#e9eef6 url('https://images.unsplash.com/photo-1560200352-df7c35bbf1d1?auto=format&fit=crop&w=1350&q=80') no-repeat center bottom;
+  background:#e9eef6 url('https://conteudo.imguol.com.br/c/noticias/2b/2018/10/28/28out2018---movimentacao-em-secao-eleitoral-antes-da-abertura-da-votacao-para-o-segundo-turno-das-eleicoes-2018-no-centro-de-sao-paulo-sp-1540726103629_750x1000.jpg') no-repeat center bottom;
   background-size:cover;
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  min-height:100vh;
+}
+.logo{
+  width:200px;
+  margin-bottom:10px;
 }
 .top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
-.top button{padding:8px 12px;font-weight:bold;border-radius:8px}
+.top button{padding:8px 12px;font-weight:bold;border-radius:8px;cursor:pointer;}
 .urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,0.25);}
-.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:200px;position:relative;}
+.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:250px;position:relative;}
 .digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
 .digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
 .key{background:#000;color:#fff}
 .green{background:#0a0;color:#fff}
+.green.piscar{animation:piscar 1s infinite;}
+@keyframes piscar{0%,100%{opacity:1}50%{opacity:0.3}}
 .orange{background:#f70;color:#fff}
 .white{background:#fff;border:1px solid #999}
+#candidate{margin-top:10px;text-align:center;}
+#candidate img{width:80px;height:80px;border-radius:50%;display:block;margin:0 auto 6px;}
 #founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center}
 .fp{background:#fff;padding:20px;width:500px;border-radius:16px;max-height:90vh;overflow:auto}
 .fp input,.fp button{width:100%;margin-top:6px;padding:8px}
@@ -47,7 +56,7 @@ pre{background:#eee;padding:8px}
   background:#000;
   padding:20px;
   border:2px solid #0f0;
-  width:340px;
+  width:360px;
   text-align:center;
   border-radius:12px;
 }
@@ -56,14 +65,18 @@ pre{background:#eee;padding:8px}
 </head>
 <body>
 
+<img class="logo" src="https://www.estudotop.com.br/wp-content/uploads/elementor/thumbs/logo-tse-unificado_3-q05569dfkxnbyd38wsipr6u6y7klwz2ncpfpehoub2.png">
+
 <div class="top">
   <button id="btnFundador">Fundador</button>
   <button id="btnBoletim">Boletim</button>
+  <button id="btnSolicitarTitulo">Solicitar Título</button>
 </div>
 
 <div class="urna">
   <div class="screen">
     <div id="label">DIGITE SEU TÍTULO</div>
+    <div id="subLabel">VOTO PARA PREFEITO</div>
     <div class="digits" id="digits"></div>
     <div id="candidate"></div>
   </div>
@@ -93,7 +106,10 @@ pre{background:#eee;padding:8px}
   <div class="comp">
     <h1>COMPROVANTE DE VOTAÇÃO</h1>
     <p>Nome: <span id="cNome"></span></p>
+    <p>Estado: <span id="cEstado"></span></p>
     <p>Título: <span id="cTitulo"></span></p>
+    <p>Urna: <span id="cUrna"></span></p>
+    <p>Seção: <span id="cSecao"></span></p>
     <p>Data/Hora: <span id="cData"></span></p>
     <p>VOTO REGISTRADO COM SUCESSO</p>
     <br>
@@ -108,6 +124,7 @@ pre{background:#eee;padding:8px}
 
 <input id="etTitulo" placeholder="Título (8 dígitos)">
 <input id="etNome" placeholder="Nome eleitor">
+<input id="etEstado" placeholder="Estado">
 <button id="addEleitorBtn">Cadastrar Eleitor</button>
 
 <hr>
@@ -115,7 +132,12 @@ pre{background:#eee;padding:8px}
 <input id="candNum" placeholder="Número (2 dígitos)">
 <input id="candNome" placeholder="Nome candidato">
 <input id="candPartido" placeholder="Partido">
+<input type="file" id="candFoto" accept="image/*">
 <button id="addCandidatoBtn">Cadastrar Candidato</button>
+
+<hr>
+
+<button id="verTitulosBtn">Ver Títulos</button>
 
 <hr>
 
@@ -146,21 +168,23 @@ const app = initializeApp({
 });
 const db = getDatabase(app);
 
-/* URNA */
+/* URNA CONFIG */
 const urnaRef = ref(db,"config/urna");
 if(!(await get(urnaRef)).exists()) await set(urnaRef,{aberta:true});
 
 /* VARS */
-let etapa="titulo", buf=[], titulo="", nome="";
+let etapa="titulo", buf=[], titulo="", nome="", estado="";
 const digits=document.getElementById("digits");
 const label=document.getElementById("label");
+const subLabel=document.getElementById("subLabel");
 const founderPanel=document.getElementById("founderPanel");
 const out=document.getElementById("out");
 const comprovante=document.getElementById("comprovante");
+const candidateDiv=document.getElementById("candidate");
 
-/* BOTÕES */
 const corrige = document.getElementById("corrige");
 const confirma = document.getElementById("confirma");
+const branco = document.getElementById("branco");
 const btnFundador = document.getElementById("btnFundador");
 const fecharFundadorBtn = document.getElementById("fecharFundadorBtn");
 const addEleitorBtn = document.getElementById("addEleitorBtn");
@@ -172,8 +196,10 @@ const verEleitoresBtn = document.getElementById("verEleitoresBtn");
 const encerrarUrnaBtn = document.getElementById("encerrarUrnaBtn");
 const apagarVotoIpBtn = document.getElementById("apagarVotoIpBtn");
 const resetBtn = document.getElementById("resetBtn");
+const btnTitulos = document.getElementById("verTitulosBtn");
+const btnSolicitarTitulo = document.getElementById("btnSolicitarTitulo");
 
-/* FUNÇÃO RENDER */
+/* FUNÇÕES */
 function render(l){
   digits.innerHTML="";
   for(let i=0;i<l;i++){
@@ -184,6 +210,20 @@ function render(l){
   }
 }
 
+async function showCandidate(){
+  if(buf.length<2 && etapa==="voto") return;
+  const num = buf.join("");
+  const s = await get(ref(db,"candidatos/Prefeito/"+num));
+  if(s.exists()){
+    const c = s.val();
+    candidateDiv.innerHTML = `<img src="${c.foto||''}"><strong>${c.nome}</strong><br>${c.partido}`;
+    confirma.classList.add("piscar");
+  } else {
+    candidateDiv.innerHTML = "<strong>VOTO NULO</strong>";
+    confirma.classList.add("piscar");
+  }
+}
+
 /* TECLADO */
 document.querySelectorAll("[data-n]").forEach(b=>{
   b.onclick=async()=>{
@@ -191,17 +231,25 @@ document.querySelectorAll("[data-n]").forEach(b=>{
     if(!u.aberta){ alert("URNA ENCERRADA"); return; }
     const lim = etapa==="titulo"?8:2;
     if(buf.length<lim){ buf.push(b.dataset.n); render(lim); }
+    if(etapa==="voto") showCandidate();
   };
 });
 
+/* BRANCO */
+branco.onclick=()=>{
+  buf=[];
+  candidateDiv.innerHTML="<strong>VOTO EM BRANCO</strong>";
+  confirma.classList.add("piscar");
+};
+
 /* CORRIGE */
 corrige.onclick=()=>{
-  buf=[];
+  buf=[]; candidateDiv.innerHTML=""; confirma.classList.remove("piscar");
   if(etapa==="titulo"){ label.textContent="DIGITE SEU TÍTULO"; render(8); }
   else{ label.textContent="DIGITE SEU VOTO"; render(2); }
 };
 
-/* CONFIRMA */
+/* CONFIRMA VOTO */
 confirma.onclick=async()=>{
   const u=(await get(urnaRef)).val();
   if(!u.aberta){ alert("URNA ENCERRADA"); return; }
@@ -209,28 +257,34 @@ confirma.onclick=async()=>{
   if(etapa==="titulo"){
     const s=await get(ref(db,"eleitores/"+buf.join("")));
     if(!s.exists()){ alert("Eleitor não cadastrado"); return; }
-    titulo=buf.join(""); nome=s.val().nome;
+    titulo=buf.join(""); nome=s.val().nome; estado=s.val().estado||"--";
+    const jaVotou = await get(ref(db,"eleitores_votaram/"+titulo));
+    if(jaVotou.exists()){ alert("Este título já votou!"); return; }
     etapa="voto"; buf=[]; label.textContent="DIGITE SEU VOTO"; render(2); return;
   }
 
-  const voto=buf.join("");
-  const vr=ref(db,"votos/Prefeito/"+voto);
-  const vs=await get(vr);
+  let voto="";
+  if(candidateDiv.textContent.includes("VOTO EM BRANCO")) voto="BRANCO";
+  else voto = buf.join("");
+
+  const vr = ref(db,"votos/Prefeito/"+voto);
+  const vs = await get(vr);
   await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
 
   const ip=await fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip);
 
   await set(ref(db,"eleitores_votaram/"+titulo),
-    {nome,ip,voto,data:new Date().toLocaleString()});
+    {nome,estado,titulo,ip,voto,data:new Date().toLocaleString(),urna:"001",secao:"12"});
 
-  /* MOSTRAR COMPROVANTE */
   document.getElementById("cNome").textContent = nome;
+  document.getElementById("cEstado").textContent = estado;
   document.getElementById("cTitulo").textContent = titulo;
+  document.getElementById("cUrna").textContent = "001";
+  document.getElementById("cSecao").textContent = "12";
   document.getElementById("cData").textContent = new Date().toLocaleString();
   comprovante.style.display = "flex";
 };
 
-/* FECHAR COMPROVANTE APÓS 3 SEGUNDOS */
 comprovante.onclick = ()=>{ comprovante.style.display="none"; location.reload(); };
 
 /* FUNDADOR */
@@ -239,29 +293,52 @@ fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
 
 /* CADASTRO ELEITOR */
 addEleitorBtn.onclick=async()=>{
-  const etTitulo = document.getElementById("etTitulo").value;
-  const etNome = document.getElementById("etNome").value;
-  if(!etTitulo || !etNome){ alert("Preencha os dados!"); return; }
-  await set(ref(db,"eleitores/"+etTitulo),{nome:etNome});
-  alert("Eleitor cadastrado");
+  const t=document.getElementById("etTitulo").value;
+  const n=document.getElementById("etNome").value;
+  const e=document.getElementById("etEstado").value;
+  if(!t||!n||!e){ alert("Preencha os campos"); return; }
+  await set(ref(db,"eleitores/"+t),{nome:n,estado:e});
+  alert("Eleitor cadastrado!");
 };
 
 /* CADASTRO CANDIDATO */
 addCandidatoBtn.onclick=async()=>{
-  const candNum = document.getElementById("candNum").value;
-  const candNome = document.getElementById("candNome").value;
-  const candPartido = document.getElementById("candPartido").value;
-  if(!candNum || !candNome || !candPartido){ alert("Preencha todos os campos"); return; }
-  await set(ref(db,"candidatos/Prefeito/"+candNum),{nome:candNome,partido:candPartido});
-  alert("Candidato cadastrado");
+  const num=document.getElementById("candNum").value;
+  const nome=document.getElementById("candNome").value;
+  const partido=document.getElementById("candPartido").value;
+  const fotoFile=document.getElementById("candFoto").files[0];
+  if(!num||!nome||!partido){ alert("Preencha os campos"); return; }
+  let foto="";
+  if(fotoFile){
+    foto = await new Promise(res=>{
+      const reader = new FileReader();
+      reader.onload=e=>res(e.target.result);
+      reader.readAsDataURL(fotoFile);
+    });
+  }
+  await set(ref(db,"candidatos/Prefeito/"+num),{nome,partido,foto});
+  alert("Candidato cadastrado!");
 };
 
-/* SENHA BOLETIM */
-salvarSenhaBtn.onclick=()=>{
-  const senhaBoletim = document.getElementById("senhaBoletim").value;
-  if(!senhaBoletim || senhaBoletim.length!==3){ alert("Digite 3 dígitos"); return; }
-  localStorage.setItem("senhaBoletim",senhaBoletim);
-  alert("Senha salva");
+/* VER TITULOS */
+btnTitulos.onclick=async()=>{
+  const t=await get(ref(db,"eleitores"));
+  if(!t.exists()){ alert("Nenhum título cadastrado"); return; }
+  let s="TÍTULOS CADASTRADOS:\n";
+  for(const k in t.val()) s+=`${k} | ${t.val()[k].nome} | ${t.val()[k].estado||''}\n`;
+  alert(s);
+};
+
+/* SOLICITAR TITULO */
+btnSolicitarTitulo.onclick=async()=>{
+  const nome = prompt("Digite seu nome:");
+  if(!nome) return;
+  const estado = prompt("Digite seu estado:");
+  if(!estado) return;
+  const titulo = String(Math.floor(Math.random()*90000000)+10000000);
+  await set(ref(db,"eleitores/"+titulo),{nome,estado});
+  alert(`Título gerado: ${titulo}`);
+  etapa="voto"; buf=[]; label.textContent="DIGITE SEU VOTO"; render(2);
 };
 
 /* BOLETIM */
@@ -289,45 +366,41 @@ verEleitoresBtn.onclick=async()=>{
   const e=await get(ref(db,"eleitores_votaram"));
   if(!e.exists()){ out.textContent="Nenhum eleitor votou ainda"; return; }
   let s="ELEITORES QUE VOTARAM\n";
-  for(const t in e.val()) s+=`${e.val()[t].nome} | ${e.val()[t].ip}\n`;
+  s+="Nome | Estado | Título | Voto | IP\n";
+  s+="------------------------------------\n";
+  for(const k in e.val()){
+    const el = e.val()[k];
+    s+=`${el.nome} | ${el.estado} | ${el.titulo || k} | ${el.voto} | ${el.ip || "N/A"}\n`;
+  }
   out.textContent=s;
 };
 
-/* ENCERRAR URNA */
-encerrarUrnaBtn.onclick=async()=>{
-  const ok = confirm("⚠️ Deseja realmente encerrar a urna?");
-  if(!ok) return;
-  await set(urnaRef,{aberta:false, encerradaEm:new Date().toLocaleString()});
-  alert("URNA ENCERRADA");
-};
-
-/* APAGAR VOTO IP */
+/* OUTROS BOTÕES */
+encerrarUrnaBtn.onclick=()=>set(urnaRef,{aberta:false}).then(()=>alert("Urna encerrada"));
 apagarVotoIpBtn.onclick=async()=>{
-  const ip = prompt("Digite o IP");
+  const ip = prompt("Digite o IP para apagar votos");
   if(!ip) return;
-  const e = await get(ref(db,"eleitores_votaram"));
-  if(!e.exists()) return alert("Nenhum voto");
-
-  for(const t in e.val()){
-    if(e.val()[t].ip===ip){
-      const v=e.val()[t].voto;
-      const vr=ref(db,"votos/Prefeito/"+v);
-      const vs=await get(vr);
-      await set(vr,{count:Math.max(vs.val().count-1,0)});
-      await remove(ref(db,"eleitores_votaram/"+t));
-      alert("VOTO APAGADO");
-      return;
+  const votos = await get(ref(db,"eleitores_votaram"));
+  if(votos.exists()){
+    for(const k in votos.val()){
+      if(votos.val()[k].ip===ip) await remove(ref(db,"eleitores_votaram/"+k));
     }
   }
-  alert("IP não encontrado");
+  alert("Votos apagados para o IP informado");
 };
-
-/* RESET */
 resetBtn.onclick=async()=>{
-  const ok = confirm("Deseja resetar tudo? Isso apagará votos e cadastros!");
-  if(!ok) return;
-  await set(ref(db),{});
+  if(!confirm("Deseja realmente resetar tudo?")) return;
+  await remove(ref(db,"eleitores"));
+  await remove(ref(db,"eleitores_votaram"));
+  await remove(ref(db,"candidatos"));
+  await remove(ref(db,"votos"));
   location.reload();
+};
+salvarSenhaBtn.onclick=()=>{
+  const s = document.getElementById("senhaBoletim").value;
+  if(!s) return alert("Digite a senha");
+  localStorage.setItem("senhaBoletim",s);
+  alert("Senha salva!");
 };
 </script>
 </body>
