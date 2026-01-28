@@ -148,7 +148,7 @@ pre{background:#eee;padding:8px}
 
 <button id="verApuracaoBtn">Ver Apuração</button>
 <button id="verEleitoresBtn">Eleitores que Votaram</button>
-<button id="encerrarUrnaBtn">Encerrar Urna</button>
+<button id="encerrarUrnaBtn">Encerrar/ABRIR Urna</button>
 <button id="apagarVotoIpBtn">Apagar voto por IP</button>
 <button id="resetBtn">RESETAR TUDO</button>
 <button id="fecharFundadorBtn">Fechar</button>
@@ -376,7 +376,15 @@ verEleitoresBtn.onclick=async()=>{
 };
 
 /* OUTROS BOTÕES */
-encerrarUrnaBtn.onclick=()=>set(urnaRef,{aberta:false}).then(()=>alert("Urna encerrada"));
+// TOGGLE URNA
+encerrarUrnaBtn.onclick = async () => {
+  const u = await get(urnaRef);
+  let aberta = u.exists() ? u.val().aberta : true;
+  aberta = !aberta;
+  await set(urnaRef, { aberta });
+  alert(aberta ? "URNA ABERTA" : "URNA ENCERRADA");
+};
+
 apagarVotoIpBtn.onclick=async()=>{
   const ip = prompt("Digite o IP para apagar votos");
   if(!ip) return;
@@ -388,6 +396,7 @@ apagarVotoIpBtn.onclick=async()=>{
   }
   alert("Votos apagados para o IP informado");
 };
+
 resetBtn.onclick=async()=>{
   if(!confirm("Deseja realmente resetar tudo?")) return;
   await remove(ref(db,"eleitores"));
@@ -396,6 +405,7 @@ resetBtn.onclick=async()=>{
   await remove(ref(db,"votos"));
   location.reload();
 };
+
 salvarSenhaBtn.onclick=()=>{
   const s = document.getElementById("senhaBoletim").value;
   if(!s) return alert("Digite a senha");
