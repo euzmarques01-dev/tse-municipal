@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Urna Eletrônica – Prefeito</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;background:#e9eef6;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial}
+.top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
+.top button{padding:8px 12px;font-weight:bold;border-radius:8px}
+.urna{width:400px;background:#fff;border-radius:16px;padding:16px}
+.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:200px}
+.digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
+.digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
+.key{background:#000;color:#fff}
+.green{background:#0a0;color:#fff}
+.orange{background:#f70;color:#fff}
+.white{background:#fff;border:1px solid #999}
+#founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center}
+.fp{background:#fff;padding:20px;width:500px;border-radius:16px;max-height:90vh;overflow:auto}
+.fp input,.fp button{width:100%;margin-top:6px;padding:8px}
+pre{background:#eee;padding:8px}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+  <button id="btnFundador">Fundador</button>
+  <button id="btnBoletim">Boletim</button>
+</div>
+
+<div class="urna">
+  <div class="screen">
+    <div id="label">DIGITE SEU TÍTULO</div>
+    <div class="digits" id="digits"></div>
+    <div id="candidate"></div>
+  </div>
+
+  <div class="grid">
+    <button class="key" data-n="1">1</button>
+    <button class="key" data-n="2">2</button>
+    <button class="key" data-n="3">3</button>
+    <button class="key" data-n="4">4</button>
+    <button class="key" data-n="5">5</button>
+    <button class="key" data-n="6">6</button>
+    <button class="key" data-n="7">7</button>
+    <button class="key" data-n="8">8</button>
+    <button class="key" data-n="9">9</button>
+  </div>
+
+  <div style="display:flex;gap:6px;margin-top:6px">
+    <button class="white" id="branco">BRANCO</button>
+    <button class="key" data-n="0">0</button>
+    <button class="orange" id="corrige">CORRIGE</button>
+    <button class="green" id="confirma">CONFIRMA</button>
+  </div>
+</div>
+
+<div id="founderPanel">
+<div class="fp">
+<h3>Painel do Fundador</h3>
+
+<input id="etTitulo" placeholder="Título (8 dígitos)">
+<input id="etNome" placeholder="Nome eleitor">
+<button id="addEleitorBtn">Cadastrar Eleitor</button>
+
+<hr>
+
+<input id="candNum" placeholder="Número (2 dígitos)">
+<input id="candNome" placeholder="Nome candidato">
+<input id="candPartido" placeholder="Partido">
+<button id="addCandidatoBtn">Cadastrar Candidato</button>
+
+<hr>
+
+<input id="senhaBoletim" placeholder="Senha boletim (3 dígitos)" maxlength="3">
+<button id="salvarSenhaBtn">Salvar senha boletim</button>
+
+<hr>
+
+<button id="verApuracaoBtn">Ver Apuração</button>
+<button id="verEleitoresBtn">Eleitores que Votaram</button>
+<button id="encerrarUrnaBtn">Encerrar Urna</button>
+<button id="apagarVotoIpBtn">Apagar voto por IP</button>
+<button id="resetBtn">RESETAR TUDO</button>
+<button id="fecharFundadorBtn">Fechar</button>
+
+<pre id="out"></pre>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
+  databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
+});
+const db = getDatabase(app);
+
+const urnaRef = ref(db,"config/urna");
+if(!(await get(urnaRef)).exists()) await set(urnaRef,{aberta:true});
+
+let etapa="titulo",buf=[],titulo="",nome="";
+
+const digits=document.getElementById("digits");
+function render(l){
+  digits.innerHTML="";
+  for(let i=0;i<l;i++){
+    let d=document.createElement("div");
+    d.className="digit";
+    d.textContent=buf[i]||"";
+    digits.appendChild(d);
+  }
+}
+
+document.querySelectorAll("[data-n]").forEach(b=>{
+  b.onclick=async()=>{
+    const u=(await get(urnaRef)).val();
+    if(!u.aberta){alert("URNA ENCERRADA");return;}
+    let lim=etapa==="titulo"?8:2;
+    if(buf.length<lim){buf.push(b.dataset.n);render(lim);}
+  }
+});
+
+document.getElementById("confirma").onclick=async()=>{
+  const u=(await get(urnaRef)).val();
+  if(!u.aberta){alert("URNA ENCERRADA");return;}
+
+  if(etapa==="titulo"){
+    const s=await get(ref(db,"eleitores/"+buf.join("")));
+    if(!s.exists()){alert("Eleitor não cadastrado");return;}
+    titulo=buf.join(""); nome=s.val().nome;
+    etapa="voto"; buf=[]; render(2);
+    return;
+  }
+
+  const num=buf.join("");
+  const vr=ref(db,"votos/Prefeito/"+num);
+  const vs=await get(vr);
+  await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
+
+  const ip=await fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip);
+  await set(ref(db,"eleitores_votaram/"+titulo),{nome,ip,voto:num,data:new Date().toLocaleString()});
+
+  alert("VOTO REGISTRADO");
+  location.reload();
+};
+
+document.getElementById("btnFundador").onclick=()=>{
+  if(prompt("Senha fundador")!=="2007")return;
+  founderPanel.style.display="flex";
+};
+fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
+
+addEleitorBtn.onclick=async()=>{
+  await set(ref(db,"eleitores/"+etTitulo.value),{nome:etNome.value});
+  alert("Eleitor cadastrado");
+};
+
+addCandidatoBtn.onclick=async()=>{
+  await set(ref(db,"candidatos/Prefeito/"+candNum.value),
+    {nome:candNome.value,partido:candPartido.value});
+  alert("Candidato cadastrado");
+};
+
+salvarSenhaBtn.onclick=()=>{
+  localStorage.setItem("senhaBoletim",senhaBoletim.value);
+  alert("Senha salva");
+};
+
+btnBoletim.onclick=async()=>{
+  if(prompt("Senha boletim")!==localStorage.getItem("senhaBoletim"))return;
+  const v=await get(ref(db,"votos/Prefeito"));
+  let s="APURAÇÃO\n";
+  for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
+  alert(s);
+};
+
+verApuracaoBtn.onclick=async()=>{
+  const v=await get(ref(db,"votos/Prefeito"));
+  let s="APURAÇÃO\n";
+  for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
+  out.textContent=s;
+};
+
+verEleitoresBtn.onclick=async()=>{
+  const e=await get(ref(db,"eleitores_votaram"));
+  let s="ELEITORES\n";
+  for(const t in e.val()) s+=`${e.val()[t].nome} | ${e.val()[t].ip}\n`;
+  out.textContent=s;
+};
+
+encerrarUrnaBtn.onclick=async()=>{
+  await set(urnaRef,{aberta:false});
+  alert("URNA ENCERRADA");
+};
+
+apagarVotoIpBtn.onclick=async()=>{
+  const ip=prompt("IP:");
+  const e=await get(ref(db,"eleitores_votaram"));
+  for(const t in e.val()){
+    if(e.val()[t].ip===ip){
+      const v=e.val()[t].voto;
+      const vr=ref(db,"votos/Prefeito/"+v);
+      const vs=await get(vr);
+      await set(vr,{count:vs.val().count-1});
+      await set(ref(db,"eleitores_votaram/"+t),null);
+      alert("VOTO APAGADO");
+      return;
+    }
+  }
+};
+
+resetBtn.onclick=async()=>{
+  if(confirm("Resetar tudo?")){await set(ref(db),{});location.reload();}
+};
+</script>
+</body>
+</html>
