@@ -5,11 +5,20 @@
 <title>Urna Eletrônica – Prefeito</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{margin:0;background:#e9eef6;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#e9eef6 url('https://images.unsplash.com/photo-1560200352-df7c35bbf1d1?auto=format&fit=crop&w=1350&q=80') no-repeat center bottom;
+  background-size:cover;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 .top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
 .top button{padding:8px 12px;font-weight:bold;border-radius:8px}
-.urna{width:400px;background:#fff;border-radius:16px;padding:16px}
-.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:200px}
+.urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,0.25);}
+.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:200px;position:relative;}
 .digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
 .digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -22,9 +31,29 @@ button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
 .fp{background:#fff;padding:20px;width:500px;border-radius:16px;max-height:90vh;overflow:auto}
 .fp input,.fp button{width:100%;margin-top:6px;padding:8px}
 pre{background:#eee;padding:8px}
+
+/* COMPROVANTE */
+#comprovante{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  font-family:'Arial',sans-serif;
+  color:#0f0;
+}
+.comp{
+  background:#000;
+  padding:20px;
+  border:2px solid #0f0;
+  width:340px;
+  text-align:center;
+  border-radius:12px;
+}
+.comp h1{margin-bottom:10px;font-size:20px;color:#0f0;}
 </style>
 </head>
-
 <body>
 
 <div class="top">
@@ -59,6 +88,20 @@ pre{background:#eee;padding:8px}
   </div>
 </div>
 
+<!-- COMPROVANTE -->
+<div id="comprovante">
+  <div class="comp">
+    <h1>COMPROVANTE DE VOTAÇÃO</h1>
+    <p>Nome: <span id="cNome"></span></p>
+    <p>Título: <span id="cTitulo"></span></p>
+    <p>Data/Hora: <span id="cData"></span></p>
+    <p>VOTO REGISTRADO COM SUCESSO</p>
+    <br>
+    <p style="font-weight:800;">Nação Brasileira</p>
+  </div>
+</div>
+
+<!-- PAINEL FUNDADOR -->
 <div id="founderPanel">
 <div class="fp">
 <h3>Painel do Fundador</h3>
@@ -94,130 +137,197 @@ pre{background:#eee;padding:8px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
+/* FIREBASE */
 const app = initializeApp({
   apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
   databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
 });
 const db = getDatabase(app);
 
+/* URNA */
 const urnaRef = ref(db,"config/urna");
 if(!(await get(urnaRef)).exists()) await set(urnaRef,{aberta:true});
 
-let etapa="titulo",buf=[],titulo="",nome="";
-
+/* VARS */
+let etapa="titulo", buf=[], titulo="", nome="";
 const digits=document.getElementById("digits");
+const label=document.getElementById("label");
+const founderPanel=document.getElementById("founderPanel");
+const out=document.getElementById("out");
+const comprovante=document.getElementById("comprovante");
+
+/* BOTÕES */
+const corrige = document.getElementById("corrige");
+const confirma = document.getElementById("confirma");
+const btnFundador = document.getElementById("btnFundador");
+const fecharFundadorBtn = document.getElementById("fecharFundadorBtn");
+const addEleitorBtn = document.getElementById("addEleitorBtn");
+const addCandidatoBtn = document.getElementById("addCandidatoBtn");
+const salvarSenhaBtn = document.getElementById("salvarSenhaBtn");
+const btnBoletim = document.getElementById("btnBoletim");
+const verApuracaoBtn = document.getElementById("verApuracaoBtn");
+const verEleitoresBtn = document.getElementById("verEleitoresBtn");
+const encerrarUrnaBtn = document.getElementById("encerrarUrnaBtn");
+const apagarVotoIpBtn = document.getElementById("apagarVotoIpBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+/* FUNÇÃO RENDER */
 function render(l){
   digits.innerHTML="";
   for(let i=0;i<l;i++){
-    let d=document.createElement("div");
+    const d=document.createElement("div");
     d.className="digit";
     d.textContent=buf[i]||"";
     digits.appendChild(d);
   }
 }
 
+/* TECLADO */
 document.querySelectorAll("[data-n]").forEach(b=>{
   b.onclick=async()=>{
     const u=(await get(urnaRef)).val();
-    if(!u.aberta){alert("URNA ENCERRADA");return;}
-    let lim=etapa==="titulo"?8:2;
-    if(buf.length<lim){buf.push(b.dataset.n);render(lim);}
-  }
+    if(!u.aberta){ alert("URNA ENCERRADA"); return; }
+    const lim = etapa==="titulo"?8:2;
+    if(buf.length<lim){ buf.push(b.dataset.n); render(lim); }
+  };
 });
 
-document.getElementById("confirma").onclick=async()=>{
+/* CORRIGE */
+corrige.onclick=()=>{
+  buf=[];
+  if(etapa==="titulo"){ label.textContent="DIGITE SEU TÍTULO"; render(8); }
+  else{ label.textContent="DIGITE SEU VOTO"; render(2); }
+};
+
+/* CONFIRMA */
+confirma.onclick=async()=>{
   const u=(await get(urnaRef)).val();
-  if(!u.aberta){alert("URNA ENCERRADA");return;}
+  if(!u.aberta){ alert("URNA ENCERRADA"); return; }
 
   if(etapa==="titulo"){
     const s=await get(ref(db,"eleitores/"+buf.join("")));
-    if(!s.exists()){alert("Eleitor não cadastrado");return;}
+    if(!s.exists()){ alert("Eleitor não cadastrado"); return; }
     titulo=buf.join(""); nome=s.val().nome;
-    etapa="voto"; buf=[]; render(2);
-    return;
+    etapa="voto"; buf=[]; label.textContent="DIGITE SEU VOTO"; render(2); return;
   }
 
-  const num=buf.join("");
-  const vr=ref(db,"votos/Prefeito/"+num);
+  const voto=buf.join("");
+  const vr=ref(db,"votos/Prefeito/"+voto);
   const vs=await get(vr);
   await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
 
   const ip=await fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip);
-  await set(ref(db,"eleitores_votaram/"+titulo),{nome,ip,voto:num,data:new Date().toLocaleString()});
 
-  alert("VOTO REGISTRADO");
-  location.reload();
+  await set(ref(db,"eleitores_votaram/"+titulo),
+    {nome,ip,voto,data:new Date().toLocaleString()});
+
+  /* MOSTRAR COMPROVANTE */
+  document.getElementById("cNome").textContent = nome;
+  document.getElementById("cTitulo").textContent = titulo;
+  document.getElementById("cData").textContent = new Date().toLocaleString();
+  comprovante.style.display = "flex";
 };
 
-document.getElementById("btnFundador").onclick=()=>{
-  if(prompt("Senha fundador")!=="2007")return;
-  founderPanel.style.display="flex";
-};
+/* FECHAR COMPROVANTE APÓS 3 SEGUNDOS */
+comprovante.onclick = ()=>{ comprovante.style.display="none"; location.reload(); };
+
+/* FUNDADOR */
+btnFundador.onclick=()=>{ if(prompt("Senha fundador")!=="2007") return; founderPanel.style.display="flex"; }
 fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
 
+/* CADASTRO ELEITOR */
 addEleitorBtn.onclick=async()=>{
-  await set(ref(db,"eleitores/"+etTitulo.value),{nome:etNome.value});
+  const etTitulo = document.getElementById("etTitulo").value;
+  const etNome = document.getElementById("etNome").value;
+  if(!etTitulo || !etNome){ alert("Preencha os dados!"); return; }
+  await set(ref(db,"eleitores/"+etTitulo),{nome:etNome});
   alert("Eleitor cadastrado");
 };
 
+/* CADASTRO CANDIDATO */
 addCandidatoBtn.onclick=async()=>{
-  await set(ref(db,"candidatos/Prefeito/"+candNum.value),
-    {nome:candNome.value,partido:candPartido.value});
+  const candNum = document.getElementById("candNum").value;
+  const candNome = document.getElementById("candNome").value;
+  const candPartido = document.getElementById("candPartido").value;
+  if(!candNum || !candNome || !candPartido){ alert("Preencha todos os campos"); return; }
+  await set(ref(db,"candidatos/Prefeito/"+candNum),{nome:candNome,partido:candPartido});
   alert("Candidato cadastrado");
 };
 
+/* SENHA BOLETIM */
 salvarSenhaBtn.onclick=()=>{
-  localStorage.setItem("senhaBoletim",senhaBoletim.value);
+  const senhaBoletim = document.getElementById("senhaBoletim").value;
+  if(!senhaBoletim || senhaBoletim.length!==3){ alert("Digite 3 dígitos"); return; }
+  localStorage.setItem("senhaBoletim",senhaBoletim);
   alert("Senha salva");
 };
 
+/* BOLETIM */
 btnBoletim.onclick=async()=>{
-  if(prompt("Senha boletim")!==localStorage.getItem("senhaBoletim"))return;
+  const senha = prompt("Digite a senha do boletim");
+  if(senha!==localStorage.getItem("senhaBoletim")) return alert("Senha incorreta");
   const v=await get(ref(db,"votos/Prefeito"));
-  let s="APURAÇÃO\n";
+  if(!v.exists()){ alert("Nenhum voto registrado"); return; }
+  let s="APURAÇÃO DE VOTOS\n";
   for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
   alert(s);
 };
 
+/* APURAÇÃO */
 verApuracaoBtn.onclick=async()=>{
   const v=await get(ref(db,"votos/Prefeito"));
-  let s="APURAÇÃO\n";
+  if(!v.exists()){ out.textContent="Nenhum voto registrado"; return; }
+  let s="APURAÇÃO DE VOTOS\n";
   for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
   out.textContent=s;
 };
 
+/* ELEITORES */
 verEleitoresBtn.onclick=async()=>{
   const e=await get(ref(db,"eleitores_votaram"));
-  let s="ELEITORES\n";
+  if(!e.exists()){ out.textContent="Nenhum eleitor votou ainda"; return; }
+  let s="ELEITORES QUE VOTARAM\n";
   for(const t in e.val()) s+=`${e.val()[t].nome} | ${e.val()[t].ip}\n`;
   out.textContent=s;
 };
 
+/* ENCERRAR URNA */
 encerrarUrnaBtn.onclick=async()=>{
-  await set(urnaRef,{aberta:false});
+  const ok = confirm("⚠️ Deseja realmente encerrar a urna?");
+  if(!ok) return;
+  await set(urnaRef,{aberta:false, encerradaEm:new Date().toLocaleString()});
   alert("URNA ENCERRADA");
 };
 
+/* APAGAR VOTO IP */
 apagarVotoIpBtn.onclick=async()=>{
-  const ip=prompt("IP:");
-  const e=await get(ref(db,"eleitores_votaram"));
+  const ip = prompt("Digite o IP");
+  if(!ip) return;
+  const e = await get(ref(db,"eleitores_votaram"));
+  if(!e.exists()) return alert("Nenhum voto");
+
   for(const t in e.val()){
     if(e.val()[t].ip===ip){
       const v=e.val()[t].voto;
       const vr=ref(db,"votos/Prefeito/"+v);
       const vs=await get(vr);
-      await set(vr,{count:vs.val().count-1});
-      await set(ref(db,"eleitores_votaram/"+t),null);
+      await set(vr,{count:Math.max(vs.val().count-1,0)});
+      await remove(ref(db,"eleitores_votaram/"+t));
       alert("VOTO APAGADO");
       return;
     }
   }
+  alert("IP não encontrado");
 };
 
+/* RESET */
 resetBtn.onclick=async()=>{
-  if(confirm("Resetar tudo?")){await set(ref(db),{});location.reload();}
+  const ok = confirm("Deseja resetar tudo? Isso apagará votos e cadastros!");
+  if(!ok) return;
+  await set(ref(db),{});
+  location.reload();
 };
 </script>
 </body>
