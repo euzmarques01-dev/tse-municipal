@@ -148,7 +148,7 @@ pre{background:#eee;padding:8px}
 
 <button id="verApuracaoBtn">Ver Apuração</button>
 <button id="verEleitoresBtn">Eleitores que Votaram</button>
-<button id="encerrarUrnaBtn">Encerrar/ABRIR Urna</button>
+<button id="toggleUrnaBtn">Abrir/Encerrar Urna</button>
 <button id="apagarVotoIpBtn">Apagar voto por IP</button>
 <button id="resetBtn">RESETAR TUDO</button>
 <button id="fecharFundadorBtn">Fechar</button>
@@ -193,7 +193,7 @@ const salvarSenhaBtn = document.getElementById("salvarSenhaBtn");
 const btnBoletim = document.getElementById("btnBoletim");
 const verApuracaoBtn = document.getElementById("verApuracaoBtn");
 const verEleitoresBtn = document.getElementById("verEleitoresBtn");
-const encerrarUrnaBtn = document.getElementById("encerrarUrnaBtn");
+const toggleUrnaBtn = document.getElementById("toggleUrnaBtn");
 const apagarVotoIpBtn = document.getElementById("apagarVotoIpBtn");
 const resetBtn = document.getElementById("resetBtn");
 const btnTitulos = document.getElementById("verTitulosBtn");
@@ -288,8 +288,24 @@ confirma.onclick=async()=>{
 comprovante.onclick = ()=>{ comprovante.style.display="none"; location.reload(); };
 
 /* FUNDADOR */
-btnFundador.onclick=()=>{ if(prompt("Senha fundador")!=="2007") return; founderPanel.style.display="flex"; }
+btnFundador.onclick=async()=>{
+  const senha = prompt("Digite a senha do fundador:");
+  if(senha!=="2007"){ alert("Senha incorreta"); return; }
+  founderPanel.style.display="flex";
+};
 fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
+
+/* ABRIR/ENCERRAR URNA */
+toggleUrnaBtn.onclick=async()=>{
+  const u = (await get(urnaRef)).val();
+  if(u.aberta){
+    await set(urnaRef,{aberta:false});
+    alert("Urna encerrada");
+  }else{
+    await set(urnaRef,{aberta:true});
+    alert("Urna aberta");
+  }
+};
 
 /* CADASTRO ELEITOR */
 addEleitorBtn.onclick=async()=>{
@@ -331,13 +347,14 @@ btnTitulos.onclick=async()=>{
 
 /* SOLICITAR TITULO */
 btnSolicitarTitulo.onclick=async()=>{
-  const nome = prompt("Digite seu nome:");
-  if(!nome) return;
-  const estado = prompt("Digite seu estado:");
-  if(!estado) return;
-  const titulo = String(Math.floor(Math.random()*90000000)+10000000);
-  await set(ref(db,"eleitores/"+titulo),{nome,estado});
-  alert(`Título gerado: ${titulo}`);
+  const n = prompt("Digite seu nome:");
+  if(!n) return;
+  const e = prompt("Digite seu estado:");
+  if(!e) return;
+  const t = String(Math.floor(Math.random()*90000000)+10000000);
+  await set(ref(db,"eleitores/"+t),{nome:n,estado:e});
+  alert(`Título gerado: ${t}`);
+  titulo=t; nome=n; estado=e;
   etapa="voto"; buf=[]; label.textContent="DIGITE SEU VOTO"; render(2);
 };
 
@@ -365,9 +382,7 @@ verApuracaoBtn.onclick=async()=>{
 verEleitoresBtn.onclick=async()=>{
   const e=await get(ref(db,"eleitores_votaram"));
   if(!e.exists()){ out.textContent="Nenhum eleitor votou ainda"; return; }
-  let s="ELEITORES QUE VOTARAM\n";
-  s+="Nome | Estado | Título | Voto | IP\n";
-  s+="------------------------------------\n";
+  let s="ELEITORES QUE VOTARAM\nNome | Estado | Título | Voto | IP\n------------------------------------\n";
   for(const k in e.val()){
     const el = e.val()[k];
     s+=`${el.nome} | ${el.estado} | ${el.titulo || k} | ${el.voto} | ${el.ip || "N/A"}\n`;
@@ -376,15 +391,6 @@ verEleitoresBtn.onclick=async()=>{
 };
 
 /* OUTROS BOTÕES */
-// TOGGLE URNA
-encerrarUrnaBtn.onclick = async () => {
-  const u = await get(urnaRef);
-  let aberta = u.exists() ? u.val().aberta : true;
-  aberta = !aberta;
-  await set(urnaRef, { aberta });
-  alert(aberta ? "URNA ABERTA" : "URNA ENCERRADA");
-};
-
 apagarVotoIpBtn.onclick=async()=>{
   const ip = prompt("Digite o IP para apagar votos");
   if(!ip) return;
@@ -396,7 +402,6 @@ apagarVotoIpBtn.onclick=async()=>{
   }
   alert("Votos apagados para o IP informado");
 };
-
 resetBtn.onclick=async()=>{
   if(!confirm("Deseja realmente resetar tudo?")) return;
   await remove(ref(db,"eleitores"));
@@ -405,7 +410,6 @@ resetBtn.onclick=async()=>{
   await remove(ref(db,"votos"));
   location.reload();
 };
-
 salvarSenhaBtn.onclick=()=>{
   const s = document.getElementById("senhaBoletim").value;
   if(!s) return alert("Digite a senha");
