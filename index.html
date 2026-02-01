@@ -11,37 +11,40 @@ body{
   background:#e9eef6;
   display:flex;
   flex-direction:column;
+  justify-content:center;
   align-items:center;
   min-height:100vh;
 }
-.logo{width:180px;margin:10px}
-.top{position:fixed;top:10px;right:10px;display:flex;gap:8px}
-.top button{padding:6px 10px;font-weight:bold;border-radius:6px;cursor:pointer}
-.urna{width:400px;background:#fff;border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-.screen{background:#111;color:#fff;padding:12px;border-radius:10px;min-height:230px}
-.digits{display:flex;justify-content:center;gap:6px;margin:10px 0}
-.digit{width:38px;height:52px;background:#fff;color:#000;font-size:22px;display:flex;align-items:center;justify-content:center}
+.logo{width:180px;margin-bottom:10px}
+.top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
+.top button{padding:8px 12px;font-weight:bold;border-radius:8px}
+.urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:250px}
+.digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
+.digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-button{padding:10px;font-size:14px;border-radius:6px;border:none}
+button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
 .key{background:#000;color:#fff}
-.white{background:#fff;border:1px solid #999}
-.orange{background:#f70;color:#fff}
 .green{background:#0a0;color:#fff}
 .green.piscar{animation:piscar 1s infinite}
-@keyframes piscar{50%{opacity:.3}}
-#candidate{text-align:center;margin-top:8px}
+@keyframes piscar{0%,100%{opacity:1}50%{opacity:.3}}
+.orange{background:#f70;color:#fff}
+.white{background:#fff;border:1px solid #999}
+#candidate{text-align:center;margin-top:10px}
 #founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center}
-.fp{background:#fff;padding:16px;width:420px;border-radius:12px;max-height:90vh;overflow:auto}
-.fp input,.fp button{width:100%;margin-top:6px;padding:6px}
-pre{background:#eee;padding:8px;font-size:12px}
+.fp{background:#fff;padding:20px;width:500px;border-radius:16px;max-height:90vh;overflow:auto}
+.fp input,.fp button{width:100%;margin-top:6px;padding:8px}
+pre{background:#eee;padding:8px}
 </style>
 </head>
+
 <body>
 
 <img class="logo" src="https://www.estudotop.com.br/wp-content/uploads/elementor/thumbs/logo-tse-unificado_3-q05569dfkxnbyd38wsipr6u6y7klwz2ncpfpehoub2.png">
 
 <div class="top">
   <button id="btnFundador">Fundador</button>
+  <button id="btnBoletim">Boletim</button>
 </div>
 
 <div class="urna">
@@ -72,17 +75,17 @@ pre{background:#eee;padding:8px;font-size:12px}
   </div>
 </div>
 
-<!-- PAINEL FUNDADOR -->
+<!-- FUNDADOR -->
 <div id="founderPanel">
-  <div class="fp">
-    <h3>Painel do Fundador</h3>
-    <input id="senhaFundador" placeholder="Senha fundador">
-    <button id="entrarFundador">Entrar</button>
-    <hr>
-    <button id="apagarVotoIpBtn">Apagar eleitor por IP</button>
-    <pre id="out"></pre>
-    <button onclick="document.getElementById('founderPanel').style.display='none'">Fechar</button>
-  </div>
+<div class="fp">
+<h3>Painel do Fundador</h3>
+<button id="verApuracaoBtn">Ver Apuração</button>
+<button id="verEleitoresBtn">Eleitores que Votaram</button>
+<button id="apagarVotoIpBtn">Apagar voto por IP</button>
+<button id="resetBtn">RESETAR TUDO</button>
+<button id="fecharFundadorBtn">Fechar</button>
+<pre id="out"></pre>
+</div>
 </div>
 
 <script type="module">
@@ -97,7 +100,7 @@ const app = initializeApp({
 const db = getDatabase(app);
 
 /* ETAPAS */
-const etapas=[
+const etapas = [
  {cargo:"DeputadoEstadual",label:"DEPUTADO ESTADUAL",digitos:5},
  {cargo:"DeputadoFederal",label:"DEPUTADO FEDERAL",digitos:4},
  {cargo:"Senador",label:"SENADOR",digitos:3},
@@ -105,14 +108,13 @@ const etapas=[
  {cargo:"Presidente",label:"PRESIDENTE",digitos:2}
 ];
 
-let etapa="titulo", etapaIndex=-1;
-let buf=[], titulo="", votosEleitor={};
-
+let etapa="titulo", idx=0, buf=[], votos={}, titulo="";
+const digits=document.getElementById("digits");
 const label=document.getElementById("label");
 const subLabel=document.getElementById("subLabel");
-const digits=document.getElementById("digits");
-const candidateDiv=document.getElementById("candidate");
 const confirma=document.getElementById("confirma");
+const branco=document.getElementById("branco");
+const corrige=document.getElementById("corrige");
 
 /* RENDER */
 function render(l){
@@ -125,83 +127,112 @@ function render(l){
  }
 }
 
-/* TECLADO */
+/* TECLAS */
 document.querySelectorAll("[data-n]").forEach(b=>{
  b.onclick=()=>{
-  const lim=etapa==="titulo"?8:etapas[etapaIndex].digitos;
-  if(buf.length<lim){
-    buf.push(b.dataset.n);
-    render(lim);
-  }
+  const lim = etapa==="titulo"?8:etapas[idx].digitos;
+  if(buf.length<lim){buf.push(b.dataset.n);render(lim)}
  }
 });
+
+/* BRANCO */
+branco.onclick=()=>{
+ buf=[];
+ confirma.classList.add("piscar");
+};
+
+/* CORRIGE */
+corrige.onclick=()=>{
+ buf=[];
+ confirma.classList.remove("piscar");
+ render(etapa==="titulo"?8:etapas[idx].digitos);
+};
 
 /* CONFIRMA */
 confirma.onclick=async()=>{
  if(etapa==="titulo"){
-  const s=await get(ref(db,"eleitores/"+buf.join("")));
-  if(!s.exists()) return alert("Eleitor não cadastrado");
   titulo=buf.join("");
-  etapa="voto"; etapaIndex=0; buf=[];
+  etapa="voto";
+  buf=[];
   label.textContent="VOTO PARA";
   subLabel.textContent=etapas[0].label;
   render(etapas[0].digitos);
   return;
  }
 
- const et=etapas[etapaIndex];
+ const et=etapas[idx];
  const voto=buf.join("")||"BRANCO";
- votosEleitor[et.cargo]=voto;
+ votos[et.cargo]=voto;
 
  const vr=ref(db,`votos/${et.cargo}/${voto}`);
  const vs=await get(vr);
  await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
 
- etapaIndex++;
- if(etapaIndex<etapas.length){
-  buf=[];
-  subLabel.textContent=etapas[etapaIndex].label;
-  render(etapas[etapaIndex].digitos);
+ idx++;
+ buf=[];
+ if(idx<etapas.length){
+  subLabel.textContent=etapas[idx].label;
+  render(etapas[idx].digitos);
  }else{
   const ip=await fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip);
-  await set(ref(db,"eleitores_votaram/"+titulo),{ip,votos:votosEleitor});
-  alert("VOTO FINALIZADO");
+  await set(ref(db,"eleitores_votaram/"+titulo),{ip,votos});
+  alert("VOTAÇÃO FINALIZADA");
   location.reload();
  }
 };
 
 /* FUNDADOR */
-document.getElementById("btnFundador").onclick=()=>{
- document.getElementById("founderPanel").style.display="flex";
+btnFundador.onclick=()=>{
+ if(prompt("Senha fundador")!=="2007")return;
+ founderPanel.style.display="flex";
 };
-document.getElementById("entrarFundador").onclick=()=>{
- if(document.getElementById("senhaFundador").value!=="2007")
-  return alert("Senha incorreta");
- alert("Painel liberado");
+fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
+
+/* APURAÇÃO */
+verApuracaoBtn.onclick=async()=>{
+ let s="";
+ for(const e of etapas){
+  const v=await get(ref(db,"votos/"+e.cargo));
+  s+=`\n${e.label}\n`;
+  if(v.exists()) for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
+ }
+ out.textContent=s;
 };
 
-/* APAGAR ELEITOR + VOTOS */
-document.getElementById("apagarVotoIpBtn").onclick=async()=>{
- const ip=prompt("IP do eleitor:");
- if(!ip) return;
- const snap=await get(ref(db,"eleitores_votaram"));
- for(const k in snap.val()){
-  const el=snap.val()[k];
-  if(el.ip===ip){
-    for(const cargo in el.votos){
-      const voto=el.votos[cargo];
-      const vr=ref(db,`votos/${cargo}/${voto}`);
-      const vs=await get(vr);
-      if(vs.exists()){
-        const c=vs.val().count;
-        if(c<=1) await remove(vr);
-        else await set(vr,{count:c-1});
-      }
+/* ELEITORES */
+verEleitoresBtn.onclick=async()=>{
+ const e=await get(ref(db,"eleitores_votaram"));
+ out.textContent=JSON.stringify(e.val(),null,2);
+};
+
+/* APAGAR POR IP */
+apagarVotoIpBtn.onclick=async()=>{
+ const ip=prompt("IP:");
+ const e=await get(ref(db,"eleitores_votaram"));
+ for(const k in e.val()){
+  if(e.val()[k].ip===ip){
+   for(const c in e.val()[k].votos){
+    const v=e.val()[k].votos[c];
+    const vr=ref(db,`votos/${c}/${v}`);
+    const vs=await get(vr);
+    if(vs.exists()){
+     const n=vs.val().count-1;
+     n<=0?await remove(vr):await set(vr,{count:n});
     }
-    await remove(ref(db,"eleitores_votaram/"+k));
+   }
+   await remove(ref(db,"eleitores_votaram/"+k));
   }
  }
- alert("Eleitor e votos removidos");
+ alert("Votos removidos");
+};
+
+/* RESET */
+resetBtn.onclick=async()=>{
+ if(confirm("Resetar tudo?")){
+  await remove(ref(db,"votos"));
+  await remove(ref(db,"eleitores_votaram"));
+  location.reload();
+ }
 };
 </script>
 </body>
