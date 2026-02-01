@@ -27,7 +27,7 @@ body{margin:0;font-family:Arial;background:#e9eef6;display:flex;flex-direction:c
 .fp input,.fp button{width:100%;margin-top:6px;padding:8px}
 pre{background:#eee;padding:8px;white-space:pre-wrap}
 #comprovante{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;color:#0f0}
-.comp{background:#000;padding:20px;border:2px solid #0f0;border-radius:12px;width:360px}
+.comp{background:#000;padding:20px;border:2px solid #0f0;border-radius:12px;width:360px;text-align:center}
 </style>
 </head>
 <body>
@@ -71,14 +71,28 @@ pre{background:#eee;padding:8px;white-space:pre-wrap}
 </div>
 </div>
 
-<!-- FUNDADOR -->
+<!-- PAINEL FUNDADOR -->
 <div id="founderPanel">
 <div class="fp">
 <h3>Painel do Fundador</h3>
+
+<input id="etTitulo" placeholder="Título (8 dígitos)">
+<input id="etNome" placeholder="Nome eleitor">
+<input id="etEstado" placeholder="Estado">
+<button id="addEleitorBtn">Cadastrar Eleitor</button>
+
+<hr>
+
+<input id="senhaBoletim" placeholder="Senha boletim (3 dígitos)" maxlength="3">
+<button id="salvarSenhaBtn">Salvar senha boletim</button>
+
+<hr>
+
 <button id="verEleitoresBtn">Eleitores que votaram</button>
-<button id="apagarVotoIpBtn">Apagar voto por IP</button>
+<button id="apagarVotoIpBtn">Apagar votos por IP</button>
 <button id="resetBtn">RESETAR TUDO</button>
 <button id="fecharFundadorBtn">Fechar</button>
+
 <pre id="out"></pre>
 </div>
 </div>
@@ -91,7 +105,7 @@ const app = initializeApp({
  apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
  databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
 });
-const db=getDatabase(app);
+const db = getDatabase(app);
 
 /* CARGOS */
 const cargos=[
@@ -110,16 +124,9 @@ const label=document.getElementById("label");
 const sub=document.getElementById("subLabel");
 const cand=document.getElementById("candidate");
 
-/* IP + VPN CHECK */
+/* IP */
 async function getIP(){
- return fetch("https://api.ipify.org?format=json")
- .then(r=>r.json()).then(d=>d.ip);
-}
-
-async function bloqueiaVPN(ip){
- // bloqueio simples por padrões conhecidos
- const suspeitos=["vpn","proxy","tor","hosting"];
- return suspeitos.some(s=>ip.includes(s));
+ return fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>d.ip);
 }
 
 /* RENDER */
@@ -139,12 +146,11 @@ function iniciarCargo(){
  label.textContent="DIGITE SEU VOTO";
  sub.textContent=c.nome;
  render(c.dig);
- cand.innerHTML="";
 }
 
 /* TECLADO */
 document.querySelectorAll("[data-n]").forEach(b=>{
- b.onclick=async()=>{
+ b.onclick=()=>{
   const lim=etapa==="titulo"?8:cargos[cargoIndex].dig;
   if(buf.length<lim){buf.push(b.dataset.n);render(lim)}
  };
@@ -155,32 +161,33 @@ confirma.onclick=async()=>{
  if(etapa==="titulo"){
   const s=await get(ref(db,"eleitores/"+buf.join("")));
   if(!s.exists()) return alert("Título inválido");
-
-  const ip=await getIP();
-
-  if(await bloqueiaVPN(ip)) return alert("VPN ou Proxy detectado. Voto bloqueado.");
-
-  const jaIP=await get(ref(db,"ips/"+ip));
-  if(jaIP.exists()) return alert("Este IP já votou.");
-
-  titulo=buf.join(""); nome=s.val().nome; estado=s.val().estado;
+  titulo=buf.join(); nome=s.val().nome; estado=s.val().estado;
   etapa="voto"; iniciarCargo(); return;
  }
 
- const c=cargos[cargoIndex];
- votosEleitor[c.nome]=buf.join();
-
+ votosEleitor[cargos[cargoIndex].nome]=buf.join();
  cargoIndex++;
+
  if(cargoIndex<cargos.length){ iniciarCargo(); }
  else{
   const ip=await getIP();
   await set(ref(db,"eleitores_votaram/"+titulo),{nome,estado,ip,votos:votosEleitor});
-  await set(ref(db,"ips/"+ip),true);
   document.getElementById("comprovante").style.display="flex";
  }
 };
 
 document.getElementById("comprovante").onclick=()=>location.reload();
+
+/* SOLICITAR TÍTULO */
+btnSolicitarTitulo.onclick=async()=>{
+ const n=prompt("Nome:");
+ const e=prompt("Estado:");
+ const t=String(Math.floor(Math.random()*90000000)+10000000);
+ await set(ref(db,"eleitores/"+t),{nome:n,estado:e});
+ alert("Título gerado: "+t);
+ titulo=t; nome=n; estado=e;
+ etapa="voto"; iniciarCargo();
+};
 
 /* FUNDADOR */
 btnFundador.onclick=()=>{
@@ -197,7 +204,6 @@ verEleitoresBtn.onclick=async()=>{
   const el=e.val()[k];
   s+=`${el.nome} | ${el.ip}\n`;
   for(const v in el.votos) s+=`  ${v}: ${el.votos[v]}\n`;
-  s+="\n";
  }
  out.textContent=s;
 };
@@ -205,8 +211,26 @@ verEleitoresBtn.onclick=async()=>{
 /* APAGAR POR IP */
 apagarVotoIpBtn.onclick=async()=>{
  const ip=prompt("IP:");
- await remove(ref(db,"ips/"+ip));
- alert("IP liberado");
+ const e=await get(ref(db,"eleitores_votaram"));
+ for(const k in e.val()){
+  if(e.val()[k].ip===ip) await remove(ref(db,"eleitores_votaram/"+k));
+ }
+ alert("Votos removidos");
+};
+
+/* BOLETIM */
+btnBoletim.onclick=async()=>{
+ const senha=prompt("Senha boletim:");
+ const s=await get(ref(db,"config/boletim"));
+ if(!s.exists()||senha!==s.val().senha) return alert("Senha inválida");
+ alert("Boletim liberado por 24h");
+};
+
+/* SALVAR SENHA BOLETIM */
+salvarSenhaBtn.onclick=async()=>{
+ const s=document.getElementById("senhaBoletim").value;
+ await set(ref(db,"config/boletim"),{senha:s,expira:Date.now()+86400000});
+ alert("Senha salva por 24h");
 };
 
 /* RESET */
