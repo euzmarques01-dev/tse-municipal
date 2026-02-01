@@ -7,13 +7,13 @@
 <style>
 body{
   margin:0;font-family:Arial,sans-serif;
-  background:#e9eef6 url('https://conteudo.imguol.com.br/c/noticias/2b/2018/10/28/28out2018---movimentacao-em-secao-eleitoral-antes-da-abertura-da-votacao-para-o-segundo-turno-das-eleicoes-2018-no-centro-de-sao-paulo-sp-1540726103629_750x1000.jpg') no-repeat center bottom;
-  background-size:cover;display:flex;flex-direction:column;align-items:center;min-height:100vh
+  background:#e9eef6;
+  display:flex;flex-direction:column;align-items:center;min-height:100vh
 }
 .logo{width:200px;margin:10px}
-.top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
+.top{position:fixed;top:10px;right:10px;display:flex;gap:8px}
 .top button{padding:8px 12px;font-weight:bold;border-radius:8px;cursor:pointer}
-.urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.urna{width:420px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:260px}
 .digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
 .digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
@@ -21,12 +21,20 @@ body{
 button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
 .key{background:#000;color:#fff}
 .green{background:#0a0;color:#fff}
-.green.piscar{animation:piscar 1s infinite}
-@keyframes piscar{50%{opacity:.3}}
+.green.piscar{animation:p 1s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
 .orange{background:#f70;color:#fff}
 .white{background:#fff;border:1px solid #999}
-#candidate{text-align:center;margin-top:8px}
-#candidate img{width:90px;height:90px;border-radius:50%;object-fit:cover;margin-bottom:6px}
+#candidate{text-align:center}
+#candidate img{width:90px;height:90px;border-radius:50%;margin-bottom:6px}
+#founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center}
+.fp{background:#fff;padding:20px;width:520px;border-radius:16px;max-height:90vh;overflow:auto}
+.fp input,.fp button{width:100%;margin-top:6px;padding:8px}
+pre{background:#eee;padding:8px;white-space:pre-wrap}
+
+/* comprovante */
+#comprovante{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;color:#0f0}
+.comp{background:#000;padding:20px;border:2px solid #0f0;border-radius:12px;width:360px}
 </style>
 </head>
 <body>
@@ -48,15 +56,9 @@ button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
   </div>
 
   <div class="grid">
-    <button class="key" data-n="1">1</button>
-    <button class="key" data-n="2">2</button>
-    <button class="key" data-n="3">3</button>
-    <button class="key" data-n="4">4</button>
-    <button class="key" data-n="5">5</button>
-    <button class="key" data-n="6">6</button>
-    <button class="key" data-n="7">7</button>
-    <button class="key" data-n="8">8</button>
-    <button class="key" data-n="9">9</button>
+    <button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
+    <button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
+    <button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
   </div>
 
   <div style="display:flex;gap:6px;margin-top:6px">
@@ -67,83 +69,181 @@ button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
   </div>
 </div>
 
+<!-- COMPROVANTE -->
+<div id="comprovante">
+  <div class="comp">
+    <h3>COMPROVANTE DE VOTAÇÃO</h3>
+    <p id="cDados"></p>
+    <p>VOTO REGISTRADO COM SUCESSO</p>
+    <strong>Nação Brasileira</strong>
+  </div>
+</div>
+
+<!-- PAINEL FUNDADOR -->
+<div id="founderPanel">
+<div class="fp">
+<h3>Painel do Fundador</h3>
+
+<input id="etTitulo" placeholder="Título (8 dígitos)">
+<input id="etNome" placeholder="Nome eleitor">
+<input id="etEstado" placeholder="Estado">
+<button id="addEleitorBtn">Cadastrar Eleitor</button>
+
+<hr>
+
+<input id="candCargo" placeholder="Cargo (Presidente, Governador...)">
+<input id="candNum" placeholder="Número">
+<input id="candNome" placeholder="Nome candidato">
+<input id="candPartido" placeholder="Partido">
+<input type="file" id="candFoto">
+<button id="addCandidatoBtn">Cadastrar Candidato</button>
+
+<hr>
+<button id="verApuracaoBtn">Ver Apuração</button>
+<button id="verEleitoresBtn">Eleitores que votaram</button>
+<button id="apagarVotoIpBtn">Apagar voto por IP</button>
+<button id="resetBtn">RESETAR TUDO</button>
+<button id="fecharFundadorBtn">Fechar</button>
+
+<pre id="out"></pre>
+</div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
   databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
 });
-const db = getDatabase(app);
+const db=getDatabase(app);
 
+/* CONFIG ELEIÇÃO */
 const cargos=[
- {nome:"Deputado Estadual",key:"DeputadoEstadual",dig:5},
- {nome:"Deputado Federal",key:"DeputadoFederal",dig:4},
- {nome:"Senador",key:"Senador",dig:3},
- {nome:"Governador",key:"Governador",dig:2},
- {nome:"Presidente",key:"Presidente",dig:2}
+ {nome:"Deputado Estadual",dig:5},
+ {nome:"Deputado Federal",dig:4},
+ {nome:"Senador",dig:3},
+ {nome:"Governador",dig:2},
+ {nome:"Presidente",dig:2}
 ];
 
-let etapa="titulo", etapaCargo=0, buf=[], titulo="", votos={};
-
+let etapa="titulo",cargoIndex=0,buf=[],titulo="",nome="",estado="";
 const digits=document.getElementById("digits");
 const label=document.getElementById("label");
 const sub=document.getElementById("subLabel");
-const cand=document.getElementById("candidate");
-const confirma=document.getElementById("confirma");
+const candDiv=document.getElementById("candidate");
 
 function render(l){
  digits.innerHTML="";
  for(let i=0;i<l;i++){
   const d=document.createElement("div");
-  d.className="digit";d.textContent=buf[i]||"";
+  d.className="digit";
+  d.textContent=buf[i]||"";
   digits.appendChild(d);
  }
 }
 
-async function showCand(){
- const c=cargos[etapaCargo];
- if(buf.length<c.dig) return;
- const n=buf.join("");
- const s=await get(ref(db,`candidatos/${c.key}/${n}`));
- if(s.exists()){
-  const d=s.val();
-  cand.innerHTML=`<img src="${d.foto}"><strong>${d.nome}</strong><br>${d.partido}`;
- }else cand.innerHTML="<strong>VOTO NULO</strong>";
- confirma.classList.add("piscar");
+function iniciarCargo(){
+ buf=[];
+ const c=cargos[cargoIndex];
+ label.textContent="DIGITE SEU VOTO";
+ sub.textContent=c.nome;
+ render(c.dig);
+ candDiv.innerHTML="";
 }
 
 document.querySelectorAll("[data-n]").forEach(b=>{
- b.onclick=()=>{
-  const lim=etapa==="titulo"?8:cargos[etapaCargo].dig;
-  if(buf.length<lim){buf.push(b.dataset.n);render(lim);}
-  if(etapa==="voto") showCand();
+ b.onclick=async()=>{
+  const lim=etapa==="titulo"?8:cargos[cargoIndex].dig;
+  if(buf.length<lim){buf.push(b.dataset.n);render(lim)}
+  if(etapa==="voto"){
+   const c=cargos[cargoIndex];
+   const s=await get(ref(db,"candidatos/"+c.nome+"/"+buf.join("")));
+   if(s.exists()){
+    const v=s.val();
+    candDiv.innerHTML=`<img src="${v.foto}"><strong>${v.nome}</strong><br>${v.partido}`;
+   }
+  }
  };
 });
 
 confirma.onclick=async()=>{
  if(etapa==="titulo"){
-  titulo=buf.join("");buf=[];
-  etapa="voto";label.textContent="SEU VOTO PARA:";etapaCargo=0;
-  sub.textContent=cargos[0].nome;render(cargos[0].dig);return;
+  const s=await get(ref(db,"eleitores/"+buf.join("")));
+  if(!s.exists()) return alert("Título inválido");
+  titulo=buf.join(); nome=s.val().nome; estado=s.val().estado;
+  etapa="voto"; iniciarCargo(); return;
  }
- votos[cargos[etapaCargo].key]=buf.join("")||"BRANCO";
- etapaCargo++;buf=[];cand.innerHTML="";confirma.classList.remove("piscar");
- if(etapaCargo<cargos.length){
-  sub.textContent=cargos[etapaCargo].nome;
-  render(cargos[etapaCargo].dig);
- }else{
-  await set(ref(db,"eleitores_votaram/"+titulo),{votos});
-  alert("VOTO FINALIZADO COM SUCESSO");
-  location.reload();
+ const c=cargos[cargoIndex];
+ const voto=buf.join();
+ const vr=ref(db,"votos/"+c.nome+"/"+voto);
+ const vs=await get(vr);
+ await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
+
+ cargoIndex++;
+ if(cargoIndex<cargos.length){ iniciarCargo(); }
+ else{
+  await set(ref(db,"eleitores_votaram/"+titulo),{nome,estado});
+  document.getElementById("cDados").textContent=`${nome} – ${estado}`;
+  document.getElementById("comprovante").style.display="flex";
  }
 };
 
-document.getElementById("btnFundador").onclick=()=>{
- if(prompt("Senha fundador")!=="7070") return alert("Senha errada");
- alert("Painel fundador OK (base pronta)");
+document.getElementById("comprovante").onclick=()=>location.reload();
+
+/* FUNDADOR */
+btnFundador.onclick=()=>{
+ if(prompt("Senha fundador")!=="7070") return alert("Senha incorreta");
+ document.getElementById("founderPanel").style.display="flex";
 };
+fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
+
+/* SOLICITAR TITULO */
+btnSolicitarTitulo.onclick=async()=>{
+ const n=prompt("Nome"); const e=prompt("Estado");
+ const t=Math.floor(Math.random()*90000000)+10000000;
+ await set(ref(db,"eleitores/"+t),{nome:n,estado:e});
+ alert("Título: "+t);
+};
+
+/* CADASTROS */
+addEleitorBtn.onclick=async()=>{
+ await set(ref(db,"eleitores/"+etTitulo.value),
+ {nome:etNome.value,estado:etEstado.value});
+ alert("Eleitor cadastrado");
+};
+
+addCandidatoBtn.onclick=async()=>{
+ const f=candFoto.files[0];
+ let foto="";
+ if(f){
+  const r=new FileReader();
+  foto=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(f)});
+ }
+ await set(ref(db,"candidatos/"+candCargo.value+"/"+candNum.value),
+ {nome:candNome.value,partido:candPartido.value,foto});
+ alert("Candidato cadastrado");
+};
+
+/* APURAÇÃO */
+verApuracaoBtn.onclick=async()=>{
+ let s="";
+ for(const c of cargos){
+  const v=await get(ref(db,"votos/"+c.nome));
+  s+=`\n${c.nome}\n`;
+  if(v.exists()) for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
+ }
+ out.textContent=s;
+};
+
+verEleitoresBtn.onclick=async()=>{
+ const e=await get(ref(db,"eleitores_votaram"));
+ out.textContent=JSON.stringify(e.val(),null,2);
+};
+
+apagarVotoIpBtn.onclick=()=>alert("IP ativo somente com backend real");
+resetBtn.onclick=async()=>{await remove(ref(db));location.reload()};
 </script>
 </body>
 </html>
