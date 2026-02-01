@@ -5,34 +5,27 @@
 <title>Urna Eletrônica – Eleições Gerais</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{
-  margin:0;font-family:Arial,sans-serif;
-  background:#e9eef6;
-  display:flex;flex-direction:column;align-items:center;min-height:100vh
-}
+body{margin:0;font-family:Arial;background:#e9eef6;display:flex;flex-direction:column;align-items:center}
 .logo{width:200px;margin:10px}
 .top{position:fixed;top:10px;right:10px;display:flex;gap:8px}
-.top button{padding:8px 12px;font-weight:bold;border-radius:8px;cursor:pointer}
+.top button{padding:8px 12px;border-radius:8px;font-weight:bold}
 .urna{width:420px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:260px}
-.digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
+.digits{display:flex;justify-content:center;gap:8px;margin:10px}
 .digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
-.key{background:#000;color:#fff}
+.key{background:#000;color:#fff;padding:12px;border-radius:6px}
 .green{background:#0a0;color:#fff}
-.green.piscar{animation:p 1s infinite}
-@keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
 .orange{background:#f70;color:#fff}
 .white{background:#fff;border:1px solid #999}
+.green.piscar{animation:p 1s infinite}
+@keyframes p{50%{opacity:.4}}
 #candidate{text-align:center}
-#candidate img{width:90px;height:90px;border-radius:50%;margin-bottom:6px}
+#candidate img{width:90px;height:90px;border-radius:50%}
 #founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;justify-content:center;align-items:center}
 .fp{background:#fff;padding:20px;width:520px;border-radius:16px;max-height:90vh;overflow:auto}
 .fp input,.fp button{width:100%;margin-top:6px;padding:8px}
 pre{background:#eee;padding:8px;white-space:pre-wrap}
-
-/* comprovante */
 #comprovante{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;justify-content:center;align-items:center;color:#0f0}
 .comp{background:#000;padding:20px;border:2px solid #0f0;border-radius:12px;width:360px}
 </style>
@@ -42,69 +35,50 @@ pre{background:#eee;padding:8px;white-space:pre-wrap}
 <img class="logo" src="https://www.estudotop.com.br/wp-content/uploads/elementor/thumbs/logo-tse-unificado_3-q05569dfkxnbyd38wsipr6u6y7klwz2ncpfpehoub2.png">
 
 <div class="top">
-  <button id="btnFundador">Fundador</button>
-  <button id="btnBoletim">Boletim</button>
-  <button id="btnSolicitarTitulo">Solicitar Título</button>
+<button id="btnFundador">Fundador</button>
+<button id="btnBoletim">Boletim</button>
+<button id="btnSolicitarTitulo">Solicitar Título</button>
 </div>
 
 <div class="urna">
-  <div class="screen">
-    <div id="label">DIGITE SEU TÍTULO</div>
-    <div id="subLabel"></div>
-    <div class="digits" id="digits"></div>
-    <div id="candidate"></div>
-  </div>
+<div class="screen">
+<div id="label">DIGITE SEU TÍTULO</div>
+<div id="subLabel"></div>
+<div class="digits" id="digits"></div>
+<div id="candidate"></div>
+</div>
 
-  <div class="grid">
-    <button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
-    <button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
-    <button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
-  </div>
+<div class="grid">
+<button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
+<button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
+<button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
+</div>
 
-  <div style="display:flex;gap:6px;margin-top:6px">
-    <button class="white" id="branco">BRANCO</button>
-    <button class="key" data-n="0">0</button>
-    <button class="orange" id="corrige">CORRIGE</button>
-    <button class="green" id="confirma">CONFIRMA</button>
-  </div>
+<div style="display:flex;gap:6px;margin-top:6px">
+<button class="white" id="branco">BRANCO</button>
+<button class="key" data-n="0">0</button>
+<button class="orange" id="corrige">CORRIGE</button>
+<button class="green" id="confirma">CONFIRMA</button>
+</div>
 </div>
 
 <!-- COMPROVANTE -->
 <div id="comprovante">
-  <div class="comp">
-    <h3>COMPROVANTE DE VOTAÇÃO</h3>
-    <p id="cDados"></p>
-    <p>VOTO REGISTRADO COM SUCESSO</p>
-    <strong>Nação Brasileira</strong>
-  </div>
+<div class="comp">
+<h3>COMPROVANTE DE VOTAÇÃO</h3>
+<p>VOTO REGISTRADO COM SUCESSO</p>
+<strong>Nação Brasileira</strong>
+</div>
 </div>
 
-<!-- PAINEL FUNDADOR -->
+<!-- FUNDADOR -->
 <div id="founderPanel">
 <div class="fp">
 <h3>Painel do Fundador</h3>
-
-<input id="etTitulo" placeholder="Título (8 dígitos)">
-<input id="etNome" placeholder="Nome eleitor">
-<input id="etEstado" placeholder="Estado">
-<button id="addEleitorBtn">Cadastrar Eleitor</button>
-
-<hr>
-
-<input id="candCargo" placeholder="Cargo (Presidente, Governador...)">
-<input id="candNum" placeholder="Número">
-<input id="candNome" placeholder="Nome candidato">
-<input id="candPartido" placeholder="Partido">
-<input type="file" id="candFoto">
-<button id="addCandidatoBtn">Cadastrar Candidato</button>
-
-<hr>
-<button id="verApuracaoBtn">Ver Apuração</button>
 <button id="verEleitoresBtn">Eleitores que votaram</button>
 <button id="apagarVotoIpBtn">Apagar voto por IP</button>
 <button id="resetBtn">RESETAR TUDO</button>
 <button id="fecharFundadorBtn">Fechar</button>
-
 <pre id="out"></pre>
 </div>
 </div>
@@ -114,12 +88,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const app = initializeApp({
-  apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
-  databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
+ apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
+ databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
 });
 const db=getDatabase(app);
 
-/* CONFIG ELEIÇÃO */
+/* CARGOS */
 const cargos=[
  {nome:"Deputado Estadual",dig:5},
  {nome:"Deputado Federal",dig:4},
@@ -128,12 +102,27 @@ const cargos=[
  {nome:"Presidente",dig:2}
 ];
 
-let etapa="titulo",cargoIndex=0,buf=[],titulo="",nome="",estado="";
+let etapa="titulo",cargoIndex=0,buf=[];
+let titulo="",nome="",estado="",votosEleitor={};
+
 const digits=document.getElementById("digits");
 const label=document.getElementById("label");
 const sub=document.getElementById("subLabel");
-const candDiv=document.getElementById("candidate");
+const cand=document.getElementById("candidate");
 
+/* IP + VPN CHECK */
+async function getIP(){
+ return fetch("https://api.ipify.org?format=json")
+ .then(r=>r.json()).then(d=>d.ip);
+}
+
+async function bloqueiaVPN(ip){
+ // bloqueio simples por padrões conhecidos
+ const suspeitos=["vpn","proxy","tor","hosting"];
+ return suspeitos.some(s=>ip.includes(s));
+}
+
+/* RENDER */
 function render(l){
  digits.innerHTML="";
  for(let i=0;i<l;i++){
@@ -150,42 +139,43 @@ function iniciarCargo(){
  label.textContent="DIGITE SEU VOTO";
  sub.textContent=c.nome;
  render(c.dig);
- candDiv.innerHTML="";
+ cand.innerHTML="";
 }
 
+/* TECLADO */
 document.querySelectorAll("[data-n]").forEach(b=>{
  b.onclick=async()=>{
   const lim=etapa==="titulo"?8:cargos[cargoIndex].dig;
   if(buf.length<lim){buf.push(b.dataset.n);render(lim)}
-  if(etapa==="voto"){
-   const c=cargos[cargoIndex];
-   const s=await get(ref(db,"candidatos/"+c.nome+"/"+buf.join("")));
-   if(s.exists()){
-    const v=s.val();
-    candDiv.innerHTML=`<img src="${v.foto}"><strong>${v.nome}</strong><br>${v.partido}`;
-   }
-  }
  };
 });
 
+/* CONFIRMA */
 confirma.onclick=async()=>{
  if(etapa==="titulo"){
   const s=await get(ref(db,"eleitores/"+buf.join("")));
   if(!s.exists()) return alert("Título inválido");
-  titulo=buf.join(); nome=s.val().nome; estado=s.val().estado;
+
+  const ip=await getIP();
+
+  if(await bloqueiaVPN(ip)) return alert("VPN ou Proxy detectado. Voto bloqueado.");
+
+  const jaIP=await get(ref(db,"ips/"+ip));
+  if(jaIP.exists()) return alert("Este IP já votou.");
+
+  titulo=buf.join(""); nome=s.val().nome; estado=s.val().estado;
   etapa="voto"; iniciarCargo(); return;
  }
+
  const c=cargos[cargoIndex];
- const voto=buf.join();
- const vr=ref(db,"votos/"+c.nome+"/"+voto);
- const vs=await get(vr);
- await set(vr,{count:(vs.exists()?vs.val().count:0)+1});
+ votosEleitor[c.nome]=buf.join();
 
  cargoIndex++;
  if(cargoIndex<cargos.length){ iniciarCargo(); }
  else{
-  await set(ref(db,"eleitores_votaram/"+titulo),{nome,estado});
-  document.getElementById("cDados").textContent=`${nome} – ${estado}`;
+  const ip=await getIP();
+  await set(ref(db,"eleitores_votaram/"+titulo),{nome,estado,ip,votos:votosEleitor});
+  await set(ref(db,"ips/"+ip),true);
   document.getElementById("comprovante").style.display="flex";
  }
 };
@@ -194,55 +184,32 @@ document.getElementById("comprovante").onclick=()=>location.reload();
 
 /* FUNDADOR */
 btnFundador.onclick=()=>{
- if(prompt("Senha fundador")!=="7070") return alert("Senha incorreta");
- document.getElementById("founderPanel").style.display="flex";
+ if(prompt("Senha fundador")!=="7070") return;
+ founderPanel.style.display="flex";
 };
 fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
 
-/* SOLICITAR TITULO */
-btnSolicitarTitulo.onclick=async()=>{
- const n=prompt("Nome"); const e=prompt("Estado");
- const t=Math.floor(Math.random()*90000000)+10000000;
- await set(ref(db,"eleitores/"+t),{nome:n,estado:e});
- alert("Título: "+t);
-};
-
-/* CADASTROS */
-addEleitorBtn.onclick=async()=>{
- await set(ref(db,"eleitores/"+etTitulo.value),
- {nome:etNome.value,estado:etEstado.value});
- alert("Eleitor cadastrado");
-};
-
-addCandidatoBtn.onclick=async()=>{
- const f=candFoto.files[0];
- let foto="";
- if(f){
-  const r=new FileReader();
-  foto=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(f)});
- }
- await set(ref(db,"candidatos/"+candCargo.value+"/"+candNum.value),
- {nome:candNome.value,partido:candPartido.value,foto});
- alert("Candidato cadastrado");
-};
-
-/* APURAÇÃO */
-verApuracaoBtn.onclick=async()=>{
+/* ELEITORES */
+verEleitoresBtn.onclick=async()=>{
+ const e=await get(ref(db,"eleitores_votaram"));
  let s="";
- for(const c of cargos){
-  const v=await get(ref(db,"votos/"+c.nome));
-  s+=`\n${c.nome}\n`;
-  if(v.exists()) for(const k in v.val()) s+=`${k}: ${v.val()[k].count}\n`;
+ for(const k in e.val()){
+  const el=e.val()[k];
+  s+=`${el.nome} | ${el.ip}\n`;
+  for(const v in el.votos) s+=`  ${v}: ${el.votos[v]}\n`;
+  s+="\n";
  }
  out.textContent=s;
 };
 
-verEleitoresBtn.onclick=async()=>{
- const e=await get(ref(db,"eleitores_votaram"));
- out.textContent=JSON.stringify(e.val(),null,2);
+/* APAGAR POR IP */
+apagarVotoIpBtn.onclick=async()=>{
+ const ip=prompt("IP:");
+ await remove(ref(db,"ips/"+ip));
+ alert("IP liberado");
 };
 
-apagarVotoIpBtn.onclick=()=>alert("IP ativo somente com backend real");
+/* RESET */
 resetBtn.onclick=async()=>{await remove(ref(db));location.reload()};
 </script>
 </body>
