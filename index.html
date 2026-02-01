@@ -4,55 +4,39 @@
 <meta charset="UTF-8">
 <title>Urna Eletrônica – Eleições Gerais</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#e9eef6;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
+  margin:0;font-family:Arial,sans-serif;
+  background:#e9eef6 url('https://conteudo.imguol.com.br/c/noticias/2b/2018/10/28/28out2018---movimentacao-em-secao-eleitoral-antes-da-abertura-da-votacao-para-o-segundo-turno-das-eleicoes-2018-no-centro-de-sao-paulo-sp-1540726103629_750x1000.jpg') no-repeat center bottom;
+  background-size:cover;display:flex;flex-direction:column;align-items:center;min-height:100vh
 }
-.urna{width:420px;background:#fff;border-radius:16px;padding:16px}
+.logo{width:200px;margin:10px}
+.top{position:fixed;top:10px;right:10px;display:flex;gap:10px}
+.top button{padding:8px 12px;font-weight:bold;border-radius:8px;cursor:pointer}
+.urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:260px}
 .digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
-.digit{width:42px;height:58px;background:#fff;color:#000;font-size:26px;
-display:flex;align-items:center;justify-content:center}
+.digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
 .key{background:#000;color:#fff}
 .green{background:#0a0;color:#fff}
+.green.piscar{animation:piscar 1s infinite}
+@keyframes piscar{50%{opacity:.3}}
 .orange{background:#f70;color:#fff}
 .white{background:#fff;border:1px solid #999}
-
 #candidate{text-align:center;margin-top:8px}
-#candidate img{
-  width:90px;height:90px;border-radius:50%;
-  object-fit:cover;border:3px solid #fff;
-}
-
-.top{position:fixed;top:10px;right:10px;display:flex;gap:6px}
-
-#founderPanel{
-  position:fixed;inset:0;background:rgba(0,0,0,.6);
-  display:none;justify-content:center;align-items:center
-}
-.fp{
-  background:#fff;width:520px;padding:16px;border-radius:16px;
-  max-height:90vh;overflow:auto
-}
-.fp input,.fp button{width:100%;margin-top:6px;padding:8px}
-pre{background:#eee;padding:8px;white-space:pre-wrap}
+#candidate img{width:90px;height:90px;border-radius:50%;object-fit:cover;margin-bottom:6px}
 </style>
 </head>
-
 <body>
+
+<img class="logo" src="https://www.estudotop.com.br/wp-content/uploads/elementor/thumbs/logo-tse-unificado_3-q05569dfkxnbyd38wsipr6u6y7klwz2ncpfpehoub2.png">
 
 <div class="top">
   <button id="btnFundador">Fundador</button>
   <button id="btnBoletim">Boletim</button>
+  <button id="btnSolicitarTitulo">Solicitar Título</button>
 </div>
 
 <div class="urna">
@@ -83,41 +67,16 @@ pre{background:#eee;padding:8px;white-space:pre-wrap}
   </div>
 </div>
 
-<!-- PAINEL FUNDADOR -->
-<div id="founderPanel">
-<div class="fp">
-<h3>Painel do Fundador</h3>
-
-<input id="candCargo" placeholder="Cargo (DeputadoEstadual)">
-<input id="candNum" placeholder="Número">
-<input id="candNome" placeholder="Nome">
-<input id="candPartido" placeholder="Partido">
-<input type="file" id="candFoto" accept="image/*">
-<button id="addCandidatoBtn">Cadastrar Candidato</button>
-
-<hr>
-
-<button id="verBoletimBtn">Ver Boletim</button>
-<button id="resetBtn">RESETAR TUDO</button>
-<button id="fecharFundadorBtn">Fechar</button>
-
-<pre id="out"></pre>
-</div>
-</div>
-
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, get, set, remove } from
-"https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-/* FIREBASE */
 const app = initializeApp({
-  apiKey:"AIzaSyCPnLB16tErzJZ4kozY4zfxJE3-dWOw4S0",
-  databaseURL:"https://urna-96bf5-default-rtdb.firebaseio.com"
+  apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
+  databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
 });
 const db = getDatabase(app);
 
-/* CARGOS */
 const cargos=[
  {nome:"Deputado Estadual",key:"DeputadoEstadual",dig:5},
  {nome:"Deputado Federal",key:"DeputadoFederal",dig:4},
@@ -126,145 +85,65 @@ const cargos=[
  {nome:"Presidente",key:"Presidente",dig:2}
 ];
 
-let etapaTitulo=true;
-let etapaCargo=0;
-let buffer=[];
-let votos={};
+let etapa="titulo", etapaCargo=0, buf=[], titulo="", votos={};
 
+const digits=document.getElementById("digits");
 const label=document.getElementById("label");
 const sub=document.getElementById("subLabel");
-const digits=document.getElementById("digits");
-const candidate=document.getElementById("candidate");
+const cand=document.getElementById("candidate");
+const confirma=document.getElementById("confirma");
 
-/* RENDER DIGITOS */
-function renderDigits(qtd){
-  digits.innerHTML="";
-  for(let i=0;i<qtd;i++){
-    const d=document.createElement("div");
-    d.className="digit";
-    d.textContent=buffer[i]||"";
-    digits.appendChild(d);
-  }
+function render(l){
+ digits.innerHTML="";
+ for(let i=0;i<l;i++){
+  const d=document.createElement("div");
+  d.className="digit";d.textContent=buf[i]||"";
+  digits.appendChild(d);
+ }
 }
 
-/* MOSTRAR CANDIDATO */
-async function mostrarCandidato(){
-  const c=cargos[etapaCargo];
-  if(buffer.length!==c.dig) return;
-  const num=buffer.join("");
-  const s=await get(ref(db,"candidatos/"+c.key+"/"+num));
-  if(s.exists()){
-    const v=s.val();
-    candidate.innerHTML=`<img src="${v.foto}">
-      <b>${v.nome}</b><br>${v.partido}`;
-  }else{
-    candidate.innerHTML="<b>VOTO NULO</b>";
-  }
+async function showCand(){
+ const c=cargos[etapaCargo];
+ if(buf.length<c.dig) return;
+ const n=buf.join("");
+ const s=await get(ref(db,`candidatos/${c.key}/${n}`));
+ if(s.exists()){
+  const d=s.val();
+  cand.innerHTML=`<img src="${d.foto}"><strong>${d.nome}</strong><br>${d.partido}`;
+ }else cand.innerHTML="<strong>VOTO NULO</strong>";
+ confirma.classList.add("piscar");
 }
 
-/* TECLADO */
 document.querySelectorAll("[data-n]").forEach(b=>{
-  b.onclick=()=>{
-    const limite=etapaTitulo?8:cargos[etapaCargo].dig;
-    if(buffer.length<limite){
-      buffer.push(b.dataset.n);
-      renderDigits(limite);
-      if(!etapaTitulo) mostrarCandidato();
-    }
-  };
+ b.onclick=()=>{
+  const lim=etapa==="titulo"?8:cargos[etapaCargo].dig;
+  if(buf.length<lim){buf.push(b.dataset.n);render(lim);}
+  if(etapa==="voto") showCand();
+ };
 });
 
-/* CORRIGE */
-corrige.onclick=()=>{
-  buffer=[];
-  candidate.innerHTML="";
-  renderDigits(etapaTitulo?8:cargos[etapaCargo].dig);
+confirma.onclick=async()=>{
+ if(etapa==="titulo"){
+  titulo=buf.join("");buf=[];
+  etapa="voto";label.textContent="SEU VOTO PARA:";etapaCargo=0;
+  sub.textContent=cargos[0].nome;render(cargos[0].dig);return;
+ }
+ votos[cargos[etapaCargo].key]=buf.join("")||"BRANCO";
+ etapaCargo++;buf=[];cand.innerHTML="";confirma.classList.remove("piscar");
+ if(etapaCargo<cargos.length){
+  sub.textContent=cargos[etapaCargo].nome;
+  render(cargos[etapaCargo].dig);
+ }else{
+  await set(ref(db,"eleitores_votaram/"+titulo),{votos});
+  alert("VOTO FINALIZADO COM SUCESSO");
+  location.reload();
+ }
 };
 
-/* BRANCO */
-branco.onclick=()=>{
-  buffer=[];
-  votos[cargos[etapaCargo].key]="BRANCO";
-  confirmar();
-};
-
-/* CONFIRMA */
-async function confirmar(){
-  if(etapaTitulo){
-    etapaTitulo=false;
-    label.textContent="VOTE PARA";
-    sub.textContent=cargos[0].nome;
-    buffer=[];
-    renderDigits(cargos[0].dig);
-    return;
-  }
-
-  votos[cargos[etapaCargo].key]=buffer.join("");
-  etapaCargo++;
-  buffer=[];
-  candidate.innerHTML="";
-
-  if(etapaCargo<cargos.length){
-    sub.textContent=cargos[etapaCargo].nome;
-    renderDigits(cargos[etapaCargo].dig);
-  }else{
-    for(const c in votos){
-      const r=ref(db,"votos/"+c+"/"+votos[c]);
-      const s=await get(r);
-      await set(r,{count:(s.exists()?s.val().count:0)+1});
-    }
-    alert("VOTO CONFIRMADO");
-    location.reload();
-  }
-}
-confirma.onclick=confirmar;
-
-/* FUNDADOR */
-btnFundador.onclick=()=>{
-  if(prompt("Senha do fundador:")!=="7070") return;
-  founderPanel.style.display="flex";
-};
-fecharFundadorBtn.onclick=()=>founderPanel.style.display="none";
-
-/* CADASTRAR CANDIDATO */
-addCandidatoBtn.onclick=async()=>{
-  const file=candFoto.files[0];
-  if(!file) return alert("Selecione a foto");
-
-  const foto=await new Promise(r=>{
-    const fr=new FileReader();
-    fr.onload=e=>r(e.target.result);
-    fr.readAsDataURL(file);
-  });
-
-  await set(ref(db,"candidatos/"+candCargo.value+"/"+candNum.value),{
-    nome:candNome.value,
-    partido:candPartido.value,
-    foto
-  });
-  alert("Candidato cadastrado");
-};
-
-/* BOLETIM */
-verBoletimBtn.onclick=async()=>{
-  const v=await get(ref(db,"votos"));
-  let txt="BOLETIM DE URNA\n\n";
-  v.forEach(c=>{
-    txt+=c.key+"\n";
-    c.forEach(n=>txt+=` ${n.key} → ${n.val().count}\n`);
-    txt+="\n";
-  });
-  out.textContent=txt;
-};
-
-/* RESET */
-resetBtn.onclick=async()=>{
-  if(!confirm("RESETAR TUDO?"))return;
-  await remove(ref(db,"votos"));
-  await remove(ref(db,"eleitores_votaram"));
-  alert("Reset feito");
+document.getElementById("btnFundador").onclick=()=>{
+ if(prompt("Senha fundador")!=="7070") return alert("Senha errada");
+ alert("Painel fundador OK (base pronta)");
 };
 </script>
-
 </body>
 </html>
