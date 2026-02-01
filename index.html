@@ -4,231 +4,145 @@
 <meta charset="UTF-8">
 <title>Urna Eletrônica – Eleições Gerais</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
 body{
-  margin:0;font-family:Arial,sans-serif;
-  background:#e9eef6;
-  display:flex;flex-direction:column;align-items:center;min-height:100vh;
+  margin:0;font-family:Arial;background:#0b1c2d;
+  display:flex;flex-direction:column;align-items:center;color:#fff;
 }
-.logo{width:200px;margin:10px}
 .top{position:fixed;top:10px;right:10px;display:flex;gap:8px}
 .top button{padding:8px 12px;border-radius:8px;font-weight:bold}
-.urna{width:400px;background:#fff;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-.screen{background:#111;color:#fff;padding:14px;border-radius:12px;min-height:260px}
-.digits{display:flex;justify-content:center;gap:8px;margin:10px 0}
-.digit{width:40px;height:55px;background:#fff;color:#000;font-size:24px;display:flex;align-items:center;justify-content:center}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-button{padding:12px;font-size:16px;border-radius:6px;border:none;cursor:pointer}
-.key{background:#000;color:#fff}
-.green{background:#0a0;color:#fff}
-.green.piscar{animation:piscar 1s infinite}
-@keyframes piscar{0%,100%{opacity:1}50%{opacity:.3}}
-.orange{background:#f70;color:#fff}
-.white{background:#fff;border:1px solid #999}
-#candidate{text-align:center;margin-top:10px}
-#candidate img{width:90px;height:90px;border-radius:50%;object-fit:cover;margin-bottom:6px}
-
-#founderPanel{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;justify-content:center;align-items:center}
-.fp{background:#fff;padding:20px;width:520px;border-radius:16px;max-height:90vh;overflow:auto}
-.fp input,.fp select,.fp button{width:100%;margin-top:6px;padding:8px}
-pre{background:#eee;padding:8px}
-
-#comprovante{
-  position:fixed;inset:0;background:rgba(0,0,0,.8);
-  display:none;justify-content:center;align-items:center;color:#0f0
-}
-.comp{
-  background:#000;border:2px solid #0f0;border-radius:12px;
-  padding:20px;width:360px;text-align:center
-}
+.urna{margin-top:80px;width:400px;background:#1e2f45;border-radius:16px;padding:16px}
+.screen{background:#000;padding:12px;border-radius:10px;min-height:260px}
+.digits{display:flex;justify-content:center;gap:8px}
+.digit{width:40px;height:55px;background:#fff;color:#000;font-size:26px;
+display:flex;align-items:center;justify-content:center}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.key{background:#000;color:#fff;padding:14px;font-size:18px}
+.green{background:#0a0}
+.green.piscar{animation:p 1s infinite}
+@keyframes p{50%{opacity:.3}}
+.orange{background:#f70}
+.white{background:#fff;color:#000}
+#candidate img{width:90px;height:90px;border-radius:50%;margin:8px}
+#founderPanel,#solicitar{position:fixed;inset:0;background:rgba(0,0,0,.8);
+display:none;justify-content:center;align-items:center}
+.box{background:#fff;color:#000;padding:20px;border-radius:12px;width:90%;max-width:500px}
+.box input,.box button,select{width:100%;margin-top:6px;padding:8px}
+pre{background:#eee;padding:8px;max-height:200px;overflow:auto}
 </style>
 </head>
 
 <body>
 
-<img class="logo" src="https://www.estudotop.com.br/wp-content/uploads/elementor/thumbs/logo-tse-unificado_3-q05569dfkxnbyd38wsipr6u6y7klwz2ncpfpehoub2.png">
-
 <div class="top">
-  <button id="btnFundador">Fundador</button>
-  <button id="btnBoletim">Boletim</button>
-  <button id="btnSolicitarTitulo">Solicitar Título</button>
+<button id="btnSolicitar">Solicitar Título</button>
+<button id="btnBoletim">Boletim</button>
+<button id="btnFundador">Fundador</button>
 </div>
 
 <div class="urna">
-  <div class="screen">
-    <div id="label">DIGITE SEU TÍTULO</div>
-    <div class="digits" id="digits"></div>
-    <div id="candidate"></div>
-  </div>
-
-  <div class="grid">
-    <button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
-    <button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
-    <button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
-  </div>
-
-  <div style="display:flex;gap:6px;margin-top:6px">
-    <button class="white" id="branco">BRANCO</button>
-    <button class="key" data-n="0">0</button>
-    <button class="orange" id="corrige">CORRIGE</button>
-    <button class="green" id="confirma">CONFIRMA</button>
-  </div>
+<div class="screen">
+<div id="label">DIGITE SEU TÍTULO</div>
+<div class="digits" id="digits"></div>
+<div id="candidate"></div>
 </div>
 
-<div id="comprovante">
-  <div class="comp">
-    <h3>COMPROVANTE DE VOTAÇÃO</h3>
-    <p id="compTxt"></p>
-    <strong>VOTO REGISTRADO</strong>
-  </div>
+<div class="grid">
+<button class="key" data-n="1">1</button><button class="key" data-n="2">2</button><button class="key" data-n="3">3</button>
+<button class="key" data-n="4">4</button><button class="key" data-n="5">5</button><button class="key" data-n="6">6</button>
+<button class="key" data-n="7">7</button><button class="key" data-n="8">8</button><button class="key" data-n="9">9</button>
 </div>
 
+<div style="display:flex;gap:6px;margin-top:6px">
+<button class="white" id="branco">BRANCO</button>
+<button class="key" data-n="0">0</button>
+<button class="orange" id="corrige">CORRIGE</button>
+<button class="green" id="confirma">CONFIRMA</button>
+</div>
+</div>
+
+<!-- SOLICITAR TÍTULO -->
+<div id="solicitar">
+<div class="box">
+<h3>Solicitar Título</h3>
+<input id="nome" placeholder="Nome completo">
+<input id="estado" placeholder="Estado">
+<button id="criarTitulo">Criar</button>
+</div>
+</div>
+
+<!-- FUNDADOR -->
 <div id="founderPanel">
-<div class="fp">
+<div class="box">
 <h3>Painel do Fundador</h3>
 
-<input id="senhaBol" placeholder="Senha do boletim (3 dígitos)" maxlength="3">
-<button id="salvarSenhaBol">Salvar senha boletim</button>
+<input id="senhaBol" placeholder="Senha boletim (3 dígitos)">
+<button id="saveSenha">Salvar senha boletim</button>
 
 <hr>
 
-<select id="cargoCand">
-  <option>Deputado Estadual</option>
-  <option>Deputado Federal</option>
-  <option>Senador</option>
-  <option>Governador</option>
-  <option>Presidente</option>
-</select>
-<input id="candNum" placeholder="Número">
-<input id="candNome" placeholder="Nome">
-<input id="candPartido" placeholder="Partido">
-<input type="file" id="candFoto">
-<button id="addCandidato">Cadastrar Candidato</button>
+<input id="ipDel" placeholder="IP para apagar votos">
+<button id="delIp">Apagar votos por IP</button>
 
 <hr>
-<button id="verApuracao">Ver Apuração</button>
-<button id="verEleitores">Eleitores</button>
-<button id="fecharFundador">Fechar</button>
+
+<button id="verEleitores">Ver Eleitores</button>
+<button onclick="founderPanel.style.display='none'">Fechar</button>
 
 <pre id="out"></pre>
 </div>
 </div>
 
-<audio id="audioConfirma" src="https://www.myinstants.com/media/sounds/confirma-urna-eletronica.mp3"></audio>
-<audio id="audioFim" src="https://www.myinstants.com/media/sounds/urna-eletronica-confirma.mp3"></audio>
+<audio id="somConfirma" src="https://www.myinstants.com/media/sounds/confirma-urna-eletronica.mp3"></audio>
+<audio id="somFim" src="https://www.myinstants.com/media/sounds/urna-eletronica-confirma.mp3"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, set, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-const app = initializeApp({
-  apiKey:"AIzaSyAE-c6y2Z1JsQplCfj1UNW7Wyr4ssCsJQU",
-  databaseURL:"https://tse-painel-default-rtdb.firebaseio.com"
+const app=initializeApp({
+apiKey:"AIzaSyCPnLB16tErzJZ4kozY4zfxJE3-dWOw4S0",
+databaseURL:"https://urna-96bf5-default-rtdb.firebaseio.com"
 });
-const db = getDatabase(app);
+const db=getDatabase(app);
 
-/* ELEIÇÕES GERAIS */
-const cargos=[
- {nome:"Deputado Estadual",dig:5},
- {nome:"Deputado Federal",dig:4},
- {nome:"Senador",dig:3},
- {nome:"Governador",dig:2},
- {nome:"Presidente",dig:2}
-];
+let ip="";
+fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>ip=d.ip);
 
-let etapa="titulo",cargoIdx=0,buf=[];
-const label=document.getElementById("label");
-const digits=document.getElementById("digits");
-const candidate=document.getElementById("candidate");
-const confirma=document.getElementById("confirma");
-
-function render(l){
-  digits.innerHTML="";
-  for(let i=0;i<l;i++){
-    const d=document.createElement("div");
-    d.className="digit";
-    d.textContent=buf[i]||"";
-    digits.appendChild(d);
-  }
-}
-
-async function showCandidate(){
-  confirma.classList.remove("piscar");
-  if(buf.length!==cargos[cargoIdx].dig)return;
-  const num=buf.join("");
-  const s=await get(ref(db,`candidatos/${cargos[cargoIdx].nome}/${num}`));
-  if(s.exists()){
-    const c=s.val();
-    candidate.innerHTML=`<img src="${c.foto}"><strong>${c.nome}</strong><br>${c.partido}`;
-  }else{
-    candidate.innerHTML="<strong style='color:red'>VOTO NULO</strong>";
-  }
-  confirma.classList.add("piscar");
-}
-
-document.querySelectorAll("[data-n]").forEach(b=>{
-  b.onclick=()=>{
-    const lim=etapa==="titulo"?8:cargos[cargoIdx].dig;
-    if(buf.length<lim){buf.push(b.dataset.n);render(lim)}
-    if(etapa==="voto")showCandidate();
-  }
+btnSolicitar.onclick=()=>solicitar.style.display="flex";
+criarTitulo.onclick=async()=>{
+await set(ref(db,"eleitores/"+ip),{
+nome:nome.value,estado:estado.value,ip,data:new Date().toLocaleString()
 });
-
-confirma.onclick=async()=>{
-  if(etapa==="titulo"){
-    etapa="voto";
-    label.textContent="VOTO PARA "+cargos[cargoIdx].nome.toUpperCase();
-    buf=[];render(cargos[cargoIdx].dig);return;
-  }
-
-  document.getElementById("audioConfirma").play();
-  const voto=buf.join("")||"BRANCO";
-  await set(ref(db,`votos/${cargos[cargoIdx].nome}/${voto}`),true);
-
-  cargoIdx++;
-  buf=[];candidate.innerHTML="";
-
-  if(cargoIdx<cargos.length){
-    label.textContent="VOTO PARA "+cargos[cargoIdx].nome.toUpperCase();
-    render(cargos[cargoIdx].dig);
-  }else{
-    document.getElementById("audioFim").play();
-    label.textContent="FIM";
-    confirma.classList.add("piscar");
-    document.getElementById("comprovante").style.display="flex";
-  }
+alert("Título criado. Urna liberada.");
+solicitar.style.display="none";
 };
 
 btnFundador.onclick=()=>{
-  if(prompt("Senha fundador")!=="2007")return;
-  founderPanel.style.display="flex";
+if(prompt("Senha fundador")!=="7070")return;
+founderPanel.style.display="flex";
 };
 
-salvarSenhaBol.onclick=async()=>{
-  await set(ref(db,"config/senhaBoletim"),senhaBol.value);
-  alert("Senha salva");
-};
+saveSenha.onclick=()=>set(ref(db,"config/senhaBoletim"),senhaBol.value);
 
 btnBoletim.onclick=async()=>{
-  const s=prompt("Senha boletim");
-  const r=await get(ref(db,"config/senhaBoletim"));
-  if(!r.exists()||r.val()!==s)return alert("Senha incorreta");
-  const v=await get(ref(db,"votos"));
-  alert(JSON.stringify(v.val(),null,2));
+const s=prompt("Senha boletim");
+const r=await get(ref(db,"config/senhaBoletim"));
+if(!r.exists()||r.val()!=s)return alert("Senha errada");
+const v=await get(ref(db,"votos"));
+alert(JSON.stringify(v.val(),null,2));
 };
 
-addCandidato.onclick=()=>{
-  const reader=new FileReader();
-  reader.onload=async()=>{
-    await set(ref(db,`candidatos/${cargoCand.value}/${candNum.value}`),
-      {nome:candNome.value,partido:candPartido.value,foto:reader.result});
-    alert("Candidato cadastrado");
-  };
-  reader.readAsDataURL(candFoto.files[0]);
+verEleitores.onclick=async()=>{
+const r=await get(ref(db,"eleitores"));
+out.textContent=JSON.stringify(r.val(),null,2);
 };
 
-fecharFundador.onclick=()=>founderPanel.style.display="none";
+delIp.onclick=async()=>{
+await remove(ref(db,"eleitores/"+ipDel.value));
+await remove(ref(db,"votosPorIp/"+ipDel.value));
+alert("Votos apagados");
+};
 </script>
 </body>
 </html>
